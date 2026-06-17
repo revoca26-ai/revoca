@@ -89,7 +89,7 @@ Migrations are numbered SQL files that run in order. Each one creates or modifie
 - [ ] Add script to `package.json`: `"migrate": "tsx db/migrate.ts"`
 - [ ] Write your first 4 migration files:
   - `001_enable_extensions.sql` — `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS vector;`
-  - `002_create_organizations.sql` — the `organizations` table (see [database.md](backend/database.md))
+  - `002_create_organizations.sql` — the `organizations` table (see [database.md](../backend/database.md))
   - `003_create_users.sql` — the `users` table with `org_id` FK to organizations
   - `004_create_integrations.sql` — the `integrations` table
 - [ ] Run `npm run migrate` and verify the tables exist
@@ -222,7 +222,7 @@ Now that auth works, you need the rest of the tables before building features. Y
 
 ### You're done when
 
-- All tables from [database.md](backend/database.md) exist in your local database
+- All tables from [database.md](../backend/database.md) exist in your local database
 - Throwing `new AppError('VALIDATION_ERROR', 400, 'Question too short')` in any route handler produces a clean JSON error response
 - `requireRole('admin')` blocks members from protected endpoints
 - `npm run migrate` on a fresh DB creates everything cleanly
@@ -717,7 +717,7 @@ This is the final stage. Build the remaining pages, wire up the Slack Events web
   - **Vercel:** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL`
   - Set up custom domains
   - Update OAuth redirect URIs for production
-  - Run the post-deploy checklist from [deployment.md](guides/deployment.md)
+  - Run the post-deploy checklist from [deployment.md](deployment.md)
 - [ ] Set up uptime monitoring on `/health`
 
 ### You're done when
