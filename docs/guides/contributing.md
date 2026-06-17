@@ -30,7 +30,7 @@ Optional body explaining why, not what.
 
 Examples:
 ```
-Add hybrid search with 70/30 semantic/keyword weighting.
+Add hybrid search with reciprocal rank fusion of semantic + keyword.
 
 Pure semantic search missed exact entity names in early testing.
 ```

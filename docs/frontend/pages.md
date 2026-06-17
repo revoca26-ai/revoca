@@ -19,11 +19,12 @@ Primary interface. User types a question and receives an answer with sources.
 
 **Layout:**
 1. `QueryInput` at top
-2. On submit → loading skeleton via `LoadingState`
-3. On response → `AnswerCard` + `SourceChips`
+2. On submit → `POST /ask` returns an `id`; skeleton via `LoadingState` until the first streamed token
+3. `AnswerCard` fills in as `token` events arrive; `SourceChips` render on the `sources` event
 4. If no integrations connected → `EmptyState` prompting to visit `/integrations`
+5. If `QUOTA_EXCEEDED` on submit → upgrade CTA instead of the input
 
-**State:** Managed by `useAsk` hook. Clears previous answer on new submit.
+**State:** Managed by `useAsk` hook (opens the SSE stream, accumulates tokens, closes on `done`). Clears previous answer on new submit.
 
 ## `/history` — History
 
@@ -42,9 +43,9 @@ Manage OAuth connections.
 
 **Layout:**
 1. Three `IntegrationCard` components (Slack, Gmail, Google Drive)
-2. Connect button → redirects to `GET /api/v1/integrations/:provider/connect`
-3. After OAuth callback → URL param `?connected=slack` shows success toast
-4. Disconnect → confirmation modal → `DELETE /api/v1/integrations/:provider`
+2. Connect button → `POST /api/v1/integrations/:provider/connect` (fetch) → navigate to the returned `authorizeUrl`
+3. After OAuth callback → URL param `?connected=slack` shows success toast (`?error=oauth_failed` shows an error)
+4. Disconnect → confirmation modal → `DELETE /api/v1/integrations/:provider` (`202`; card shows `disconnecting` until `GET /integrations` confirms)
 5. Manual sync button → `POST /api/v1/integrations/:provider/sync` with polling
 
 **Permissions:** Connect/disconnect/sync visible only to `admin` and `owner` roles.

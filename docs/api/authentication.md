@@ -46,11 +46,16 @@ Clerk session JWTs are standard RS256-signed JWTs.
 4. Verify RS256 signature
 5. Validate exp (reject expired), iss (must match Clerk instance)
 6. Look up user by clerk_user_id = sub
-7. Verify user.org_id matches org_id claim
-8. Attach { userId, orgId, role } to req.auth
+7. If not found → just-in-time provision from claims (see below), don't 401
+8. Verify user.org_id matches org_id claim
+9. Attach { userId, orgId, role } to req.auth
 ```
 
 Rejected tokens return `401 AUTH_INVALID`. Missing header returns `401 AUTH_REQUIRED`.
+
+### Just-in-time provisioning ([ADR-015](../architecture/decisions.md))
+
+Clerk webhooks sync users/orgs asynchronously and can lag a few seconds behind signup. To avoid a `401`/`404` on a brand-new user's very first request, if a **verified** JWT references a user or org not yet in the database, the backend provisions the record on the fly (idempotent upsert on `clerk_user_id` / `clerk_org_id`) inside the request, then proceeds. Webhooks remain authoritative for updates and deletes.
 
 ## Token expiry
 
@@ -63,23 +68,46 @@ The frontend Clerk SDK (`@clerk/clerk-react`) handles token refresh transparentl
 
 ## Frontend integration
 
-```javascript
+`useAuth()` is a hook, so it must be called inside a component/hook — not inside a plain function. Build the authenticated client from the `getToken` obtained in a hook:
+
+```typescript
 import { useAuth } from '@clerk/clerk-react';
 
-async function apiFetch(path, options = {}) {
+export function useApi() {
   const { getToken } = useAuth();
-  const token = await getToken();
 
-  return fetch(`${import.meta.env.VITE_API_URL}/api/v1${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
+  return async function api(path: string, options: RequestInit = {}) {
+    const token = await getToken(); // fresh JWT per call; never cache
+    return fetch(`${import.meta.env.VITE_API_URL}/api/v1${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  };
 }
 ```
+
+### OAuth connect is a `fetch`, not a navigation
+
+Because a top-level browser redirect cannot attach the `Authorization` header, the OAuth connect endpoint is an authenticated `POST` that returns a URL; the SPA then navigates to it ([ADR-014](../architecture/decisions.md)):
+
+```typescript
+const { authorizeUrl } = await api(`/integrations/${provider}/connect`, { method: 'POST' })
+  .then(r => r.json()).then(b => b.data);
+window.location.assign(authorizeUrl);
+```
+
+## OAuth `state` (CSRF protection)
+
+The connect endpoint mints a random, single-use `state` nonce stored in `oauth_states` bound to `{ org_id, user_id, provider }` with a 10-minute TTL. The callback:
+1. Looks up the nonce; rejects if missing, expired, or already consumed → `400 OAUTH_STATE_INVALID`.
+2. Marks it consumed (single-use).
+3. Derives `org_id`/`user_id` **from the stored row**, never from any client-supplied parameter.
+
+This prevents login-CSRF (an attacker tricking a victim into connecting the attacker's account) and cross-org connection.
 
 ## Webhook authentication
 
@@ -94,6 +122,8 @@ Headers:
 ```
 
 Verified using `CLERK_WEBHOOK_SECRET` via the Svix library. Rejects requests older than 5 minutes (replay protection).
+
+> **Raw body required.** Signature verification (Svix for Clerk, HMAC for Slack) runs over the **exact raw request bytes**. The global `express.json()` parser consumes and reshapes the body, breaking verification. Mount webhook routes with a raw-body parser (`express.raw({ type: '*/*' })`) *before* — and instead of — the JSON parser, and parse JSON yourself after the signature check. This is a common, easy-to-miss production bug.
 
 ## Slack webhook authentication
 

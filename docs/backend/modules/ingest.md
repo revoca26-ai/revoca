@@ -1,6 +1,6 @@
 # Ingest Module
 
-Transforms raw content from integrations into searchable, embedded chunks.
+Transforms raw content from integrations into searchable, embedded chunks. Runs in the **Worker process** ([ADR-008](../../architecture/decisions.md)) — tokenization and chunking are CPU-bound and must not block the API event loop.
 
 ## Pipeline stages
 
@@ -38,14 +38,14 @@ Upsert into `documents` on `(org_id, integration_id, external_id)`.
 | Min / max | 200 / 400 tokens |
 | Split boundaries | Paragraph → sentence → thread reply (never mid-sentence) |
 
-Uses a tokenizer compatible with ada-002 (cl100k_base). Each chunk inherits document metadata plus `chunk_index` and character offsets.
+Uses a `cl100k_base` tokenizer (compatible with `text-embedding-3-small`). Each chunk inherits document metadata plus `chunk_index` and character offsets.
 
 ## embed()
 
-- Model: `text-embedding-ada-002`
+- Model: `text-embedding-3-small` (configurable via `EMBEDDING_MODEL`)
 - Dimensions: 1536
 - Batch size: 100 chunks per API call
-- On failure: mark `embedding_status = 'failed'`, retried by `embeddingRetry` job
+- On failure: mark `embedding_status = 'failed'`, retried by `embeddingRetry` job (every 5 min)
 
 ## persist()
 
@@ -60,13 +60,14 @@ Transaction wraps soft-delete of old chunks + insert of new chunks per document.
 
 Every integration implements:
 
-```javascript
-{
-  provider: 'slack' | 'gmail' | 'gdrive',
-  getOAuthConfig(): { authUrl, scopes, redirectUri },
-  exchangeCode(code): { accessToken, refreshToken, expiresAt, externalAccountId },
-  fetchDelta(cursor): { items[], nextCursor },
-  normalize(rawItem): { externalId, sourceType, title, url, content, metadata }
+```typescript
+interface Connector {
+  provider: 'slack' | 'gmail' | 'gdrive';
+  // `state` is the signed, single-use CSRF nonce (ADR-014)
+  getAuthorizeUrl(state: string): string;
+  exchangeCode(code: string): Promise<{ accessToken: string; refreshToken?: string; expiresAt?: Date; externalAccountId: string }>;
+  fetchDelta(cursor: SyncCursor | null): Promise<{ items: RawItem[]; nextCursor: SyncCursor }>;
+  normalize(rawItem: RawItem): NormalizedDocument; // { externalId, sourceType, title, url, content, metadata }
 }
 ```
 

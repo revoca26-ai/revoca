@@ -1,6 +1,6 @@
 # Components
 
-All components are functional React components. Props are validated at development time via JSDoc or PropTypes (TypeScript in Phase 2).
+All components are functional React components written in **TypeScript**. Props are typed via interfaces; request/response types are imported from the shared package ([ADR-009](../architecture/decisions.md)) so component props stay in sync with the API contract. No PropTypes.
 
 ## Layout
 

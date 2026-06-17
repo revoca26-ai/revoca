@@ -1,6 +1,6 @@
 # Database Schema
 
-PostgreSQL 15 + pgvector. All tables include `org_id` for tenant isolation.
+PostgreSQL 15 + pgvector. **Every tenant-scoped table carries `org_id`** for isolation, and the repository layer always filters on it (see the rule at the bottom of this doc). Embeddings are 1536-dimensional vectors from OpenAI `text-embedding-3-small` (see [ADR-004](../architecture/decisions.md)).
 
 ## Extensions
 
@@ -85,8 +85,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;   -- optional: fuzzy title search
 | chunk_index | INT NOT NULL | Order within document |
 | content | TEXT NOT NULL | 200–400 token segment |
 | token_count | INT | |
-| embedding | vector(1536) | ada-002 embedding |
-| search_vector | tsvector | Generated column for keyword search |
+| embedding | vector(1536) | `text-embedding-3-small` embedding |
+| search_vector | tsvector | `GENERATED ALWAYS AS (to_tsvector('english', content)) STORED` |
 | metadata | JSONB | Inherited + chunk-specific offsets |
 | embedding_status | TEXT DEFAULT 'ok' | `ok`, `failed`, `pending` |
 | created_at | TIMESTAMPTZ | |
@@ -95,10 +95,24 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;   -- optional: fuzzy title search
 **Indexes:**
 ```sql
 CREATE INDEX idx_chunks_org_id ON chunks (org_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_chunks_embedding ON chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_chunks_search_vector ON chunks USING gin (search_vector);
+
+-- HNSW (ADR-011): better recall + incremental inserts than IVFFlat, no training step.
+-- Partial index so soft-deleted chunks never enter the ANN graph.
+CREATE INDEX idx_chunks_embedding ON chunks
+  USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64)
+  WHERE deleted_at IS NULL AND embedding_status = 'ok';
+
+-- Keyword leg, also partial.
+CREATE INDEX idx_chunks_search_vector ON chunks
+  USING gin (search_vector) WHERE deleted_at IS NULL;
+
 CREATE INDEX idx_chunks_document_id ON chunks (document_id);
 ```
+
+> **Multi-tenant ANN recall (ADR-011):** because HNSW returns the global top-N *before* `org_id` filtering, set `ef_search` (e.g. `SET LOCAL hnsw.ef_search = 150;`) high enough that a small tenant still gets a full candidate set after filtering. Partition `chunks` by `org_id` once any single tenant's live-chunk count makes this expensive.
+>
+> **Garbage collection:** soft-deleted chunks/documents are hard-deleted by the `purgeDeleted` job (see [jobs.md](jobs.md)) so the partial indexes and table stay lean.
 
 ### queries
 
@@ -111,18 +125,21 @@ CREATE INDEX idx_chunks_document_id ON chunks (document_id);
 | rewritten_query | JSONB | Claude rewrite output |
 | answer | TEXT | Generated answer (null if insufficient evidence) |
 | confidence | FLOAT | Top rerank score |
-| status | TEXT | `completed`, `insufficient_evidence`, `failed`, `timeout` |
-| latency_ms | INT | End-to-end processing time |
+| status | TEXT | `processing`, `completed`, `insufficient_evidence`, `failed`, `timeout` |
+| latency_ms | INT | End-to-end processing time (null until finished) |
 | created_at | TIMESTAMPTZ | |
+
+**Index:** `CREATE INDEX idx_queries_org_created ON queries (org_id, created_at DESC, id);` — backs cursor pagination of `GET /ask/history`.
 
 ### query_sources
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID PK | |
+| org_id | UUID FK | Denormalized for tenant isolation in the repository layer |
 | query_id | UUID FK → queries | |
 | chunk_id | UUID FK → chunks | |
-| relevance_score | FLOAT | Reranker score |
+| relevance_score | FLOAT | Reranker (Cohere) calibrated score |
 | citation_index | INT | 1-based citation number in answer |
 | snippet | TEXT | Highlighted excerpt |
 
@@ -131,13 +148,19 @@ CREATE INDEX idx_chunks_document_id ON chunks (document_id);
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID PK | |
+| org_id | UUID FK | Required for tenant isolation — the sync-status endpoint must filter on it |
 | integration_id | UUID FK | |
+| trigger | TEXT | `scheduled`, `manual`, `initial` |
 | status | TEXT | `running`, `completed`, `failed` |
 | items_fetched | INT | |
 | items_ingested | INT | |
+| items_skipped | INT | Unchanged (dedup) items |
 | error_message | TEXT | |
 | started_at | TIMESTAMPTZ | |
 | finished_at | TIMESTAMPTZ | |
+
+**Index:** partial unique index to enforce "one running sync per integration":
+`CREATE UNIQUE INDEX uniq_sync_running ON sync_jobs (integration_id) WHERE status = 'running';`
 
 ### digest_settings
 
@@ -160,6 +183,34 @@ CREATE INDEX idx_chunks_document_id ON chunks (document_id);
 | status | TEXT | `sent`, `failed` |
 | sent_at | TIMESTAMPTZ | |
 
+### oauth_states
+
+Single-use CSRF tokens binding an OAuth callback back to the initiating org/user (see [ADR-014](../architecture/decisions.md)).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| state | TEXT PK | Random 32-byte URL-safe nonce sent as the OAuth `state` param |
+| org_id | UUID FK | Initiating org |
+| user_id | UUID FK | Initiating user |
+| provider | TEXT NOT NULL | `slack`, `gmail`, `gdrive` |
+| redirect_path | TEXT | Frontend path to return to after callback |
+| consumed_at | TIMESTAMPTZ | Set when the callback redeems it; redemption is single-use |
+| expires_at | TIMESTAMPTZ NOT NULL | 10-minute TTL |
+| created_at | TIMESTAMPTZ | |
+
+### usage_counters
+
+Per-org, per-period counters backing monthly plan quotas (see [ADR-013](../architecture/decisions.md)).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| org_id | UUID FK | |
+| period | TEXT | Billing month, `YYYY-MM` in org timezone |
+| metric | TEXT | `ask` (extensible: `ingest_tokens`, etc.) |
+| count | INT DEFAULT 0 | Incremented atomically when a unit is consumed |
+
+**Index:** `PRIMARY KEY (org_id, period, metric)`. Increment via `INSERT … ON CONFLICT … DO UPDATE SET count = usage_counters.count + 1 RETURNING count` so the quota check and increment are one atomic statement.
+
 ## Migrations
 
 Migrations live in `backend/migrations/` as numbered SQL files:
@@ -171,32 +222,48 @@ Migrations live in `backend/migrations/` as numbered SQL files:
 004_create_documents_chunks.sql
 005_create_queries.sql
 006_create_digest_sync_jobs.sql
-007_create_indexes.sql
+007_create_oauth_states.sql
+008_create_usage_counters.sql
+009_create_indexes.sql
 ```
 
 Run with `npm run migrate`. Each migration runs in a transaction. Never edit a migration after it has been applied in production — add a new one instead.
 
 ## Query patterns
 
-**Hybrid search (simplified):**
+**Hybrid search with Reciprocal Rank Fusion ([ADR-002](../architecture/decisions.md)):** rank within each leg, then fuse on rank — no score normalization.
+
 ```sql
+SET LOCAL hnsw.ef_search = 150;  -- protect recall after org_id filtering (ADR-011)
+
 WITH semantic AS (
-  SELECT id, 1 - (embedding <=> $1::vector) AS score
+  SELECT id,
+         row_number() OVER (ORDER BY embedding <=> $1::vector) AS rank
   FROM chunks
-  WHERE org_id = $2 AND deleted_at IS NULL
+  WHERE org_id = $2 AND deleted_at IS NULL AND embedding_status = 'ok'
   ORDER BY embedding <=> $1::vector
   LIMIT 20
 ),
 keyword AS (
-  SELECT id, ts_rank(search_vector, plainto_tsquery('english', $3)) AS score
-  FROM chunks
+  SELECT id,
+         row_number() OVER (ORDER BY ts_rank(search_vector, q) DESC) AS rank
+  FROM chunks, plainto_tsquery('english', $3) q
   WHERE org_id = $2 AND deleted_at IS NULL
-    AND search_vector @@ plainto_tsquery('english', $3)
-  ORDER BY score DESC
+    AND search_vector @@ q
+  ORDER BY ts_rank(search_vector, q) DESC
   LIMIT 20
 )
--- merge with 0.7/0.3 weighting in application layer
-SELECT * FROM semantic UNION ALL SELECT * FROM keyword;
+SELECT id, SUM(1.0 / (60 + rank)) AS rrf_score   -- k = 60
+FROM (
+  SELECT id, rank FROM semantic
+  UNION ALL
+  SELECT id, rank FROM keyword
+) fused
+GROUP BY id
+ORDER BY rrf_score DESC
+LIMIT 20;
 ```
 
-All repository methods accept `org_id` as the first parameter. No exceptions.
+The 20 fused candidates then go to the Cohere reranker (see [search.md](modules/search.md)).
+
+**Repository rule:** every tenant-scoped repository method accepts `org_id` as its first parameter and includes `WHERE org_id = $1`. No exceptions — including `sync_jobs`, `query_sources`, `oauth_states`, and `usage_counters`.

@@ -14,14 +14,19 @@ Clerk webhooks sync user/org records to PostgreSQL on create/update/delete. See 
 
 ```
 User clicks "Connect Slack"
-  → GET /api/v1/integrations/slack/connect
-  → 302 redirect to provider OAuth consent
-  → Provider redirects to GET /api/v1/integrations/slack/callback?code=...
-  → Backend exchanges code for access + refresh tokens
+  → POST /api/v1/integrations/slack/connect  (authenticated fetch)
+  → Backend mints single-use `state` nonce bound to {org, user, provider}
+  → 200 { authorizeUrl }
+  → Frontend navigates: window.location = authorizeUrl
+  → Provider redirects to GET /api/v1/integrations/slack/callback?code=...&state=...
+  → Backend validates + consumes `state` (CSRF), derives org/user from it
+  → Exchanges code for access + refresh tokens
   → Tokens encrypted and stored in integrations table
-  → Initial full sync job enqueued
-  → 302 redirect to frontend /settings/integrations?connected=slack
+  → Initial full sync job enqueued (Worker)
+  → 302 redirect to frontend /integrations?connected=slack
 ```
+
+The connect step is a `fetch` (not a redirect) because a top-level navigation can't carry the `Authorization` header. See [ADR-014](decisions.md).
 
 Google Drive and Gmail share a single Google OAuth app with combined scopes. Slack uses a separate OAuth app.
 
@@ -55,11 +60,11 @@ Raw item (email, doc, message)
   │    • Gmail: one email = base unit; long bodies split at paragraph boundaries
   │    • GDrive: split by heading/paragraph for Docs; page boundary for PDFs
   │
-  ├─ Embed: OpenAI text-embedding-ada-002 → 1536-dim vector
+  ├─ Embed: OpenAI text-embedding-3-small → 1536-dim vector
   │
   └─ Persist:
-       INSERT chunks (content, embedding, search_vector, metadata, org_id, document_id)
-       search_vector = to_tsvector('english', content)
+       INSERT chunks (content, embedding, metadata, org_id, document_id)
+       -- search_vector is a STORED generated column: to_tsvector('english', content)
 ```
 
 Old chunks for updated documents are soft-deleted (`deleted_at`) before new chunks are inserted.
@@ -69,27 +74,30 @@ Old chunks for updated documents are soft-deleted (`deleted_at`) before new chun
 ```
 POST /api/v1/ask  { "question": "Why did we stop using Acme Corp?" }
   │
-  ├─ {
-  ├─ Claude rewrite → { "searchTerms": ["Acme Corp supplier", "vendor change"], "intent": "decision_rationale" }
+  ├─ Validate + rate limit + quota → persist query (processing) → 202 { id }
+  │     (client then opens GET /ask/:id/stream — SSE)
   │
-  ├─ Embed search terms (ada-002)
+  ├─ Claude Haiku rewrite → { "searchTerms": [...], "intent": "decision_rationale" }
   │
-  ├─ Hybrid search (parallel):
-  │    • Semantic: cosine similarity on embedding, top 20
+  ├─ Embed consolidated query (text-embedding-3-small)
+  │
+  ├─ Hybrid search (parallel legs):
+  │    • Semantic: cosine similarity on embedding, top 20 (HNSW, ef_search tuned)
   │    • Keyword: ts_rank on search_vector, top 20
-  │    • Merge: score = 0.7 × semantic_norm + 0.3 × keyword_norm
+  │    • Fuse with Reciprocal Rank Fusion (k = 60) — rank-based, no normalization
   │
-  ├─ Rerank top 20 → top 6 (cross-encoder or Claude-based reranker)
+  ├─ Rerank top 20 → top 6 (Cohere rerank-english-v3.0, calibrated scores)
   │
-  ├─ Confidence check: if top rerank score < 0.55 → INSUFFICIENT_EVIDENCE
+  ├─ Confidence check: if top relevance < 0.55 → status insufficient_evidence (stop)
   │
-  ├─ Claude answer generation (system prompt: answer ONLY from provided chunks)
+  ├─ Claude Sonnet answer generation, STREAMED (answer ONLY from provided chunks)
+  │     → token events pushed to SSE as they generate
   │
-  └─ Response:
+  └─ done event + persisted result:
        {
          "answer": "...",
          "confidence": 0.82,
-         "sources": [{ "title", "url", "snippet", "sourceType", "relevanceScore" }]
+         "sources": [{ "citationIndex", "title", "url", "snippet", "sourceType", "relevanceScore" }]
        }
 ```
 
@@ -119,5 +127,5 @@ Phase 2 adds WhatsApp Business delivery on the same summary payload.
 ## Failure handling
 
 - **Connector failure:** Integration status → `error`; retry with exponential backoff (max 5 attempts); alert after 3 consecutive failures.
-- **Embedding failure:** Chunk marked `embedding_status = failed`; retried on next sync pass.
-- **Ask timeout:** 30 s hard limit; return `QUERY_TIMEOUT` if Claude or search exceeds budget.
+- **Embedding failure:** Chunk marked `embedding_status = failed`; retried by the `embeddingRetry` job.
+- **Ask timeout:** 25 s processing budget. On overrun the query's `status` becomes `timeout` and a `QUERY_TIMEOUT` `error` event is emitted on the SSE stream — not an HTTP 504, since the request already returned `202`.

@@ -12,8 +12,8 @@
 | OAuth: Google Drive | Planned | |
 | OAuth: Gmail | Planned | |
 | OAuth: Slack | Planned | |
-| Ingestion pipeline (chunk + embed) | Planned | 200–400 token chunks, ada-002 |
-| Hybrid search (70/30 semantic/keyword) | Planned | pgvector + tsvector |
+| Ingestion pipeline (chunk + embed) | Planned | 200–400 token chunks, `text-embedding-3-small` |
+| Hybrid search (RRF: semantic + keyword) | Planned | pgvector (HNSW) + tsvector |
 | Ask endpoint with confidence threshold | Planned | "I don't know" fallback |
 | Web UI (query + answer + sources) | Planned | |
 | Integration management UI | Planned | |
@@ -44,8 +44,8 @@
 | CSV / file upload | Planned | Legacy data onboarding path |
 | WhatsApp digest delivery | Planned | Same summary, second channel |
 | Query history retention settings | Planned | Configurable per org |
-| Cross-encoder reranker | Planned | Replace Claude reranker for latency |
-| Dedicated sync worker | Planned | Move off in-process cron |
+| Self-hosted cross-encoder reranker | Planned | Evaluate replacing Cohere Rerank for cost/latency at scale |
+| Queue-based ingestion | Planned | Move the worker's in-process cron to BullMQ + Redis with multiple workers |
 | OpenAPI spec + client SDK | Planned | |
 
 **Success criteria:**

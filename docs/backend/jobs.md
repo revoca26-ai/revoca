@@ -1,6 +1,21 @@
 # Background Jobs
 
-All jobs run via `node-cron` inside the backend process (Phase 1). Each job is idempotent and logs start/finish to stdout (structured JSON in production).
+All jobs run via `node-cron` inside the **Worker process** (`ROLE=worker`), never on API replicas ([ADR-008](../architecture/decisions.md)). Each job is idempotent and logs start/finish as structured JSON.
+
+## Why not in the API process
+
+The API scales to N replicas. If cron ran there, every job would fire N times — N duplicate syncs (provider rate-limit bans) and **N copies of every digest email**. Ingestion is also CPU-bound and would add latency to live `POST /ask` requests. The single Worker process solves both.
+
+## Leader-election safety net
+
+Even with one Worker, deploys briefly overlap old and new instances. So every scheduled job first acquires a PostgreSQL advisory lock and skips the run if it can't:
+
+```sql
+SELECT pg_try_advisory_lock( hashtext('job:integrationSync') );
+-- run only if true; pg_advisory_unlock(...) in finally
+```
+
+This makes jobs safe to run on multiple workers in Phase 2 without code changes.
 
 ## Job schedule
 
@@ -9,8 +24,10 @@ All jobs run via `node-cron` inside the backend process (Phase 1). Each job is i
 | `integrationSync` | Every 15 min | ingest | Poll all active integrations for new/updated content |
 | `digestDelivery` | Hourly (checks org timezone) | digest | Send morning digest to orgs whose delivery hour matches |
 | `tokenRefresh` | Every 30 min | auth | Refresh expiring Google OAuth tokens |
-| `embeddingRetry` | Every 60 min | ingest | Re-embed chunks with `embedding_status = failed` |
+| `embeddingRetry` | Every 5 min | ingest | Re-embed chunks with `embedding_status = failed` |
+| `purgeDeleted` | Daily 03:30 UTC | ingest | Hard-delete soft-deleted documents/chunks past grace period |
 | `syncJobCleanup` | Daily 03:00 UTC | — | Delete sync_jobs older than 30 days |
+| `oauthStateCleanup` | Hourly | auth | Delete expired/consumed `oauth_states` rows |
 
 Configure poll interval via `SYNC_INTERVAL_MINUTES` env var.
 
@@ -62,9 +79,20 @@ Slack bot tokens are long-lived; no refresh needed unless revoked.
 ## embeddingRetry
 
 ```
-SELECT chunks WHERE embedding_status = 'failed' AND deleted_at IS NULL LIMIT 100
-For each → call OpenAI embed → update embedding + set status = 'ok'
+SELECT chunks WHERE embedding_status = 'failed' AND deleted_at IS NULL
+  ORDER BY created_at LIMIT 500
+Batch (100/call) → call OpenAI embed → update embedding + set status = 'ok'
 ```
+
+Runs every 5 min (not hourly) so a transient OpenAI outage that fails thousands of chunks recovers in minutes, not hours. Per-chunk attempts are capped with exponential backoff to avoid hot-looping a persistent failure.
+
+## purgeDeleted
+
+```
+Hard-delete documents + chunks where deleted_at < now() - interval '7 days'
+```
+
+Soft deletes (from disconnects and content updates) are removed after a 7-day grace window. This keeps the partial HNSW/GIN indexes and the table from accumulating dead rows that degrade vector recall and bloat storage ([ADR-011](../architecture/decisions.md)). Deletes run in bounded batches to avoid long locks.
 
 ## Error handling
 
@@ -74,6 +102,6 @@ For each → call OpenAI embed → update embedding + set status = 'ok'
 
 ## Phase 2 migration
 
-When sync volume exceeds ~10k chunks/day:
-- Move `integrationSync` to a dedicated Railway worker or queue (BullMQ + Redis).
-- Keep `digestDelivery` and `tokenRefresh` on the main process or move to Railway cron triggers.
+When sync volume exceeds ~10k chunks/day per org **or** the single Worker saturates CPU:
+- Move `integrationSync`/ingestion onto a BullMQ + Redis queue with multiple Worker replicas (the advisory-lock pattern already makes this safe).
+- Keep lightweight schedulers (`digestDelivery`, `tokenRefresh`, cleanup jobs) on the Worker or move to Railway cron triggers.

@@ -14,16 +14,18 @@ Gmail shares the Google OAuth app with Google Drive. A single connect flow reque
 ## OAuth flow
 
 ```
-GET /api/v1/integrations/gmail/connect
-  → redirect to Google consent screen with gmail.readonly scope
+POST /api/v1/integrations/gmail/connect            (authenticated)
+  → mint single-use state nonce (org/user/provider-bound)
+  → 200 { authorizeUrl: Google consent URL with gmail.readonly scope + state }
 
-GET /api/v1/integrations/google/callback?code=...
+GET /api/v1/integrations/google/callback?code=...&state=...
+  → validate + consume state (CSRF; derive org/user/provider from it)
   → POST https://oauth2.googleapis.com/token
   → store access + refresh tokens (encrypted)
-  → enqueue initial sync for gmail provider
+  → enqueue initial sync for gmail provider (Worker)
 ```
 
-Note: Google uses a unified callback URL (`/integrations/google/callback`). The `state` param encodes which provider(s) were requested.
+Note: Google uses a unified callback URL (`/integrations/google/callback`). The validated `oauth_states` row — not a client-supplied value — carries which provider(s) were requested.
 
 ## Data fetched
 
@@ -35,7 +37,7 @@ Note: Google uses a unified callback URL (`/integrations/google/callback`). The 
 
 ## Normalization
 
-```javascript
+```typescript
 {
   externalId: thread_id,
   sourceType: 'gmail_thread',
@@ -75,7 +77,4 @@ modules/integrations/gmail.ts    Connector implementation
 
 ## Disconnect
 
-`DELETE /api/v1/integrations/gmail`:
-- Revoke token via Google revoke endpoint
-- Set integration status → `disconnected`
-- Soft-delete all gmail documents/chunks for the org
+`DELETE /api/v1/integrations/gmail` returns `202` and runs in the background (Worker): status → `disconnecting`, revoke token via Google revoke endpoint, soft-delete all gmail documents/chunks for the org (hard-deleted later by `purgeDeleted`), then status → `disconnected`.

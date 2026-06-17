@@ -17,14 +17,17 @@ Bot token scopes requested during OAuth install.
 ## OAuth flow
 
 ```
-GET /api/v1/integrations/slack/connect
-  → redirect to https://slack.com/oauth/v2/authorize?client_id=...&scope=...&redirect_uri=...
+POST /api/v1/integrations/slack/connect           (authenticated)
+  → mint single-use state nonce (org/user-bound)
+  → 200 { authorizeUrl: https://slack.com/oauth/v2/authorize?client_id=...&scope=...&state=... }
+  → frontend navigates to authorizeUrl
 
-GET /api/v1/integrations/slack/callback?code=...
+GET /api/v1/integrations/slack/callback?code=...&state=...
+  → validate + consume state (CSRF; derive org/user from it)
   → POST https://slack.com/api/oauth.v2.access
   → store bot token (encrypted) + team_id
-  → enqueue initial full sync
-  → redirect to FRONTEND_URL/settings/integrations?connected=slack
+  → enqueue initial full sync (Worker)
+  → redirect to FRONTEND_URL/integrations?connected=slack
 ```
 
 ## Data fetched
@@ -48,7 +51,7 @@ Verified with `SLACK_SIGNING_SECRET`. Handles:
 
 ## Normalization
 
-```javascript
+```typescript
 {
   externalId: `${channel_id}:${ts}`,
   sourceType: 'slack_message',
@@ -61,6 +64,8 @@ Verified with `SLACK_SIGNING_SECRET`. Handles:
   }
 }
 ```
+
+> Edited messages keep the same `ts` (so `externalId` is stable); the changed `content_hash` triggers re-chunking. The Events API webhook and the 15-min poll can both deliver the same message — the `(org_id, integration_id, external_id)` upsert makes ingestion idempotent.
 
 Thread replies include `thread_ts` for chunk boundary grouping.
 
@@ -85,7 +90,8 @@ routes/webhooks/slack.ts         Events API handler
 
 ## Disconnect
 
-`DELETE /api/v1/integrations/slack`:
+`DELETE /api/v1/integrations/slack` returns `202` immediately and does the work in the background (Worker):
+- Set integration status → `disconnecting`
 - Revoke token via `auth.revoke` API
-- Set integration status → `disconnected`
-- Soft-delete all documents/chunks from this integration
+- Soft-delete all documents/chunks from this integration (hard-deleted later by `purgeDeleted`)
+- Set status → `disconnected` when done

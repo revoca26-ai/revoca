@@ -32,7 +32,7 @@ Unsupported types (images, videos, binary) are skipped and logged.
 
 ## Normalization
 
-```javascript
+```typescript
 {
   externalId: file_id,
   sourceType: 'gdrive_doc',
@@ -60,9 +60,6 @@ modules/integrations/googleOAuth.ts  Shared OAuth token exchange
 
 ## Disconnect
 
-`DELETE /api/v1/integrations/gdrive`:
-- Revoke token via Google revoke endpoint
-- Set integration status → `disconnected`
-- Soft-delete all gdrive documents/chunks for the org
+`DELETE /api/v1/integrations/gdrive` returns `202` and runs in the background (Worker): status → `disconnecting`, revoke token via Google revoke endpoint, soft-delete all gdrive documents/chunks for the org (hard-deleted later by `purgeDeleted`), then status → `disconnected`.
 
-Note: Disconnecting GDrive does not disconnect Gmail if both share the same Google OAuth token. Each provider is tracked independently in the `integrations` table.
+Note: Disconnecting GDrive does not disconnect Gmail if both share the same Google OAuth token. Each provider is tracked independently in the `integrations` table, so revoke the shared Google token only when the *last* Google-backed provider is disconnected.

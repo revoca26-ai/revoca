@@ -92,7 +92,7 @@ curl http://localhost:3000/api/v1/health
 | `extension "vector" does not exist` | Run `CREATE EXTENSION vector;` on your database |
 | Clerk JWT rejected | Verify `CLERK_SECRET_KEY` and that frontend uses the matching Clerk instance |
 | OAuth callback 404 | Ensure redirect URIs match Google/Slack app config exactly |
-| Embedding errors | Check `OPENAI_API_KEY` quota and that model `text-embedding-ada-002` is accessible |
+| Embedding errors | Check `OPENAI_API_KEY` quota and that model `text-embedding-3-small` is accessible |
 
 ## Production notes
 

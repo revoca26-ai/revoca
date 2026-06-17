@@ -49,7 +49,7 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 - Clerk authentication and org management
 - OAuth integrations: Google Drive, Gmail, Slack
 - Ingestion pipeline: parse → chunk (200–400 tokens) → embed (OpenAI) → store (pgvector + tsvector)
-- Hybrid search (70% semantic / 30% keyword) with reranking
+- Hybrid search (semantic + keyword, fused via Reciprocal Rank Fusion) with reranking
 - Ask endpoint with confidence threshold and "I don't know" fallback
 - Web UI: auth, integration management, query input, answer + source chips
 - Nightly email digest
@@ -58,14 +58,16 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 
 | Layer | Choice |
 |-------|--------|
-| Backend | TypeScript, Node.js, Express |
+| Backend | TypeScript, Node.js, Express (stateless API replicas + one worker) |
 | Frontend | TypeScript, React 19, Vite |
-| Database | PostgreSQL 15 + pgvector |
+| Database | PostgreSQL 15 + pgvector (HNSW) |
+| Cache / limits | Redis (distributed rate limiting) |
 | Auth | Clerk |
-| Embeddings | OpenAI `text-embedding-ada-002` |
-| LLM | Anthropic Claude |
-| Jobs | node-cron |
-| Deploy | Railway (backend), Vercel (frontend) |
+| Embeddings | OpenAI `text-embedding-3-small` |
+| Rerank | Cohere `rerank-english-v3.0` |
+| LLM | Anthropic Claude (Haiku rewrite, Sonnet answer, streamed) |
+| Jobs | node-cron in the worker (advisory-locked) |
+| Deploy | Railway (API + worker), Vercel (frontend) |
 
 ## License
 
