@@ -1,3 +1,9 @@
 node_modules
-.env
 dist
+
+# Env files — ignore all except the committed template
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
