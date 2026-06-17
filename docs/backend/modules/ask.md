@@ -73,10 +73,10 @@ Exceeding total → status `timeout`, error code `QUERY_TIMEOUT`.
 
 ```
 modules/ask/
-├── askService.js          Orchestrator
-├── rewriteQuery.js        Claude query rewrite
-├── generateAnswer.js      Claude answer + citation parsing
-└── buildCitations.js      Map chunks → source response objects
+├── askService.ts          Orchestrator
+├── rewriteQuery.ts        Claude query rewrite
+├── generateAnswer.ts      Claude answer + citation parsing
+└── buildCitations.ts      Map chunks → source response objects
 ```
 
 ## Dependencies

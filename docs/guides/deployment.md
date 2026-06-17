@@ -52,8 +52,8 @@ Railway service settings:
 | Setting | Value |
 |---------|-------|
 | Root directory | `backend` |
-| Build command | `npm install` |
-| Start command | `npm run migrate && node index.js` |
+| Build command | `npm install && npm run build` |
+| Start command | `npm run migrate && npm start` |
 | Health check path | `/api/v1/health` |
 
 ### 5. Custom domain

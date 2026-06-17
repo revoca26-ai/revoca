@@ -54,8 +54,8 @@ Drive API: 12,000 queries/60 s per project. Export calls are heavier — connect
 ## Files (target)
 
 ```
-modules/integrations/gdrive.js   Connector implementation
-modules/integrations/googleOAuth.js  Shared OAuth token exchange
+modules/integrations/gdrive.ts   Connector implementation
+modules/integrations/googleOAuth.ts  Shared OAuth token exchange
 ```
 
 ## Disconnect

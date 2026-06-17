@@ -38,8 +38,8 @@ Clerk session JWTs are standard RS256-signed JWTs.
 
 ## Verification (backend)
 
-```javascript
-// middleware/auth.js
+```typescript
+// middleware/auth.ts
 1. Extract Bearer token from Authorization header
 2. Decode JWT header → get kid
 3. Fetch JWKS from https://<clerk-domain>/.well-known/jwks.json (cached 1h)

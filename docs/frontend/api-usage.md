@@ -6,8 +6,8 @@ How the frontend communicates with the backend.
 
 All requests go through a single authenticated client:
 
-```javascript
-// src/api/client.js
+```typescript
+// src/api/client.ts
 const BASE = import.meta.env.VITE_API_URL;
 
 export async function api(path, { method = 'GET', body, token } = {}) {
@@ -63,7 +63,7 @@ OAuth connect flows are browser redirects — no Authorization header. The backe
 
 ## Error handling
 
-```javascript
+```typescript
 class ApiError extends Error {
   constructor(code, message, details, status) {
     super(message);
@@ -97,7 +97,7 @@ class ApiError extends Error {
 
 ## Polling pattern (sync status)
 
-```javascript
+```typescript
 async function pollSyncStatus(provider, syncJobId, token) {
   const maxAttempts = 60;
   for (let i = 0; i < maxAttempts; i++) {

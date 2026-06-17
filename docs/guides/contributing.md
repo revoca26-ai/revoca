@@ -63,20 +63,20 @@ PR template:
 
 ## Code conventions
 
-### Backend (JavaScript)
+### Backend (TypeScript)
 
 - ES modules (`import`/`export`)
 - Async/await over raw promises
 - All DB queries through repository functions in `db/repositories/`
 - Every repository function takes `orgId` as first parameter
-- Env vars accessed only through `config/env.js` — never `process.env` in modules
-- Errors thrown as typed error classes mapped to API error codes in `errorHandler.js`
+- Env vars accessed only through `config/env.ts` — never `process.env` in modules
+- Errors thrown as typed error classes mapped to API error codes in `errorHandler.ts`
 
-### Frontend (React)
+### Frontend (React + TypeScript)
 
 - Functional components only
 - Hooks for data fetching (`useAsk`, `useIntegrations`)
-- API calls only through `src/api/client.js`
+- API calls only through `src/api/client.ts`
 - No inline styles — use CSS modules or global CSS classes
 
 ### Documentation
@@ -96,7 +96,7 @@ cd backend && npm run lint
 
 ## Adding a new integration
 
-1. Create connector in `backend/modules/integrations/{provider}.js`
+1. Create connector in `backend/modules/integrations/{provider}.ts`
 2. Implement the `Connector` interface (see [ingest.md](../backend/modules/ingest.md))
 3. Add OAuth env vars to `.env.example` and [environment.md](../backend/environment.md)
 4. Add provider to `GET /integrations` response

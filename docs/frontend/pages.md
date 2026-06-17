@@ -70,8 +70,8 @@ After sign-up → Clerk org creation flow → redirect to `/integrations` (conne
 
 ## Route protection
 
-```javascript
-// App.jsx
+```typescript
+// App.tsx
 <ClerkProvider publishableKey={...}>
   <SignedIn>
     <Routes>

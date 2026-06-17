@@ -33,7 +33,7 @@ Migration files live in `backend/migrations/`. Each file is numbered and idempot
 ### Start dev server
 
 ```bash
-npm run dev                    # nodemon, default port 3000
+npm run dev                    # tsx watch, default port 3000
 ```
 
 Or from repo root:
@@ -46,17 +46,18 @@ npm run dev                    # starts backend + frontend concurrently
 
 ```
 backend/
-├── index.js                   # Express app entry, middleware, route mounting
+├── index.ts                   # Express app entry, middleware, route mounting
+├── tsconfig.json
 ├── config/                    # env validation, constants
 ├── middleware/
-│   ├── auth.js                # Clerk JWT verification
-│   ├── rateLimit.js
-│   └── errorHandler.js
+│   ├── auth.ts                # Clerk JWT verification
+│   ├── rateLimit.ts
+│   └── errorHandler.ts
 ├── routes/
-│   ├── auth.js
-│   ├── integrations.js
-│   ├── ask.js
-│   └── digest.js
+│   ├── auth.ts
+│   ├── integrations.ts
+│   ├── ask.ts
+│   └── digest.ts
 ├── modules/
 │   ├── auth/
 │   ├── ingest/
@@ -64,15 +65,15 @@ backend/
 │   ├── ask/
 │   ├── digest/
 │   └── integrations/
-│       ├── slack.js
-│       ├── gmail.js
-│       └── gdrive.js
+│       ├── slack.ts
+│       ├── gmail.ts
+│       └── gdrive.ts
 ├── jobs/
-│   ├── syncScheduler.js
-│   ├── digestScheduler.js
-│   └── tokenRefresh.js
+│   ├── syncScheduler.ts
+│   ├── digestScheduler.ts
+│   └── tokenRefresh.ts
 ├── db/
-│   ├── pool.js
+│   ├── pool.ts
 │   └── repositories/
 └── migrations/
 ```

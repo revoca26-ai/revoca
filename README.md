@@ -58,8 +58,8 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 
 | Layer | Choice |
 |-------|--------|
-| Backend | Node.js, Express |
-| Frontend | React 19, Vite |
+| Backend | TypeScript, Node.js, Express |
+| Frontend | TypeScript, React 19, Vite |
 | Database | PostgreSQL 15 + pgvector |
 | Auth | Clerk |
 | Embeddings | OpenAI `text-embedding-ada-002` |

@@ -61,11 +61,11 @@ Managed via `PATCH /api/v1/digest/settings`:
 
 ```
 modules/digest/
-├── digestService.js       Orchestrator
-├── fetchRecentContent.js  24h chunk query
-├── summarize.js           Claude summarization
-├── renderEmail.js         HTML template
-└── sendEmail.js           Email provider client
+├── digestService.ts       Orchestrator
+├── fetchRecentContent.ts  24h chunk query
+├── summarize.ts           Claude summarization
+├── renderEmail.ts         HTML template
+└── sendEmail.ts           Email provider client
 ```
 
 ## Phase 2: WhatsApp delivery

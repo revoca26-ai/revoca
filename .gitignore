@@ -1,5 +1,6 @@
 node_modules
 dist
+*.tsbuildinfo
 
 # Env files — ignore all except the committed template
 .env

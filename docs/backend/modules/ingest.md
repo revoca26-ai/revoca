@@ -76,12 +76,12 @@ Connectors live in `modules/integrations/`. No cross-imports between connectors.
 
 ```
 modules/ingest/
-├── pipeline.js            Stage orchestrator
-├── normalize.js           Source-type normalizers
-├── chunk.js               Token-aware chunking
-├── embed.js               OpenAI batch embedding
-├── persist.js             DB writes
-└── dedup.js               Content hash comparison
+├── pipeline.ts            Stage orchestrator
+├── normalize.ts           Source-type normalizers
+├── chunk.ts               Token-aware chunking
+├── embed.ts               OpenAI batch embedding
+├── persist.ts             DB writes
+└── dedup.ts               Content hash comparison
 ```
 
 ## Metrics logged per sync

@@ -70,7 +70,7 @@ Gmail API: 250 quota units/user/second. `messages.get` = 5 units. Connector batc
 ## Files (target)
 
 ```
-modules/integrations/gmail.js    Connector implementation
+modules/integrations/gmail.ts    Connector implementation
 ```
 
 ## Disconnect

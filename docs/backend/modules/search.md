@@ -58,10 +58,10 @@ IVFFlat index on `embedding` with `lists = 100`. Rebuild index when chunk count 
 
 ```
 modules/search/
-├── hybridSearch.js        Parallel semantic + keyword
-├── rerank.js              Top-20 → top-6 reranker
-├── embedQuery.js          Query term → vector
-└── filters.js             Source type / date filtering
+├── hybridSearch.ts        Parallel semantic + keyword
+├── rerank.ts              Top-20 → top-6 reranker
+├── embedQuery.ts          Query term → vector
+└── filters.ts             Source type / date filtering
 ```
 
 ## API exposure

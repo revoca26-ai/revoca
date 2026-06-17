@@ -35,30 +35,33 @@ Or from repo root: `npm run dev` (starts backend + frontend).
 ```
 frontend/
 ├── index.html
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
 ├── src/
-│   ├── main.jsx               App entry, ClerkProvider
-│   ├── App.jsx                Router setup
+│   ├── main.tsx               App entry, ClerkProvider
+│   ├── App.tsx                Router setup
 │   ├── api/
-│   │   └── client.js          Authenticated fetch wrapper
+│   │   └── client.ts          Authenticated fetch wrapper
 │   ├── pages/
-│   │   ├── Home.jsx           Query input + results
-│   │   ├── History.jsx        Past queries
-│   │   ├── Integrations.jsx   Connect/disconnect integrations
-│   │   ├── DigestSettings.jsx Digest config
-│   │   └── SignIn.jsx         Clerk sign-in redirect
+│   │   ├── Home.tsx           Query input + results
+│   │   ├── History.tsx        Past queries
+│   │   ├── Integrations.tsx   Connect/disconnect integrations
+│   │   ├── DigestSettings.tsx Digest config
+│   │   └── SignIn.tsx         Clerk sign-in redirect
 │   ├── components/
-│   │   ├── QueryInput.jsx     Question textarea + submit
-│   │   ├── AnswerCard.jsx     Answer text + confidence badge
-│   │   ├── SourceChips.jsx    Citation source links
-│   │   ├── IntegrationCard.jsx Provider status + actions
-│   │   ├── Navbar.jsx         Nav + user menu
-│   │   └── LoadingState.jsx   Skeleton/spinner states
+│   │   ├── QueryInput.tsx     Question textarea + submit
+│   │   ├── AnswerCard.tsx     Answer text + confidence badge
+│   │   ├── SourceChips.tsx    Citation source links
+│   │   ├── IntegrationCard.tsx Provider status + actions
+│   │   ├── Navbar.tsx         Nav + user menu
+│   │   └── LoadingState.tsx   Skeleton/spinner states
 │   ├── hooks/
-│   │   ├── useAsk.js          POST /ask with loading/error state
-│   │   └── useIntegrations.js GET /integrations
+│   │   ├── useAsk.ts          POST /ask with loading/error state
+│   │   └── useIntegrations.ts GET /integrations
 │   └── styles/
 │       └── global.css
-├── vite.config.js
+├── vite.config.ts
 └── package.json
 ```
 

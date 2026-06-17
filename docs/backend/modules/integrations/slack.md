@@ -79,8 +79,8 @@ Slack Tier 3: ~50 requests/minute. Connector implements token-bucket rate limite
 ## Files (target)
 
 ```
-modules/integrations/slack.js    Connector implementation
-routes/webhooks/slack.js         Events API handler
+modules/integrations/slack.ts    Connector implementation
+routes/webhooks/slack.ts         Events API handler
 ```
 
 ## Disconnect

@@ -7,8 +7,8 @@ Clerk-based authentication. The backend never stores passwords — it verifies C
 | Component | Role |
 |-----------|------|
 | Clerk (hosted) | Sign-up, sign-in, session management, org creation |
-| `middleware/auth.js` | Verify JWT on every protected route |
-| `routes/auth.js` | Webhook handler + `/me` endpoint |
+| `middleware/auth.ts` | Verify JWT on every protected route |
+| `routes/auth.ts` | Webhook handler + `/me` endpoint |
 | `modules/auth/` | User/org sync, token encryption utilities |
 
 ## JWT verification
@@ -54,7 +54,7 @@ OAuth tokens for integrations are encrypted at rest:
 - Key: `TOKEN_ENCRYPTION_KEY` (32-byte hex)
 - Stored as `{ iv, ciphertext, authTag }` base64-encoded in `integrations.access_token_enc`
 
-Encrypt/decrypt functions live in `modules/auth/crypto.js`. Never log decrypted tokens.
+Encrypt/decrypt functions live in `modules/auth/crypto.ts`. Never log decrypted tokens.
 
 ## Roles
 
@@ -70,12 +70,12 @@ Role checked in route middleware for admin-only endpoints (connect/disconnect in
 
 ```
 modules/auth/
-├── clerkVerify.js         JWKS fetch + JWT validation
-├── syncUser.js            Webhook event handlers
-├── crypto.js              AES-256-GCM encrypt/decrypt
-└── roles.js               Role-based access helpers
-middleware/auth.js          requireAuth, requireRole('admin')
-routes/auth.js              webhook + GET /me
+├── clerkVerify.ts         JWKS fetch + JWT validation
+├── syncUser.ts            Webhook event handlers
+├── crypto.ts              AES-256-GCM encrypt/decrypt
+└── roles.ts               Role-based access helpers
+middleware/auth.ts          requireAuth, requireRole('admin')
+routes/auth.ts              webhook + GET /me
 ```
 
 ## Endpoints
