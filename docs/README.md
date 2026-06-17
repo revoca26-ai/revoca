@@ -7,6 +7,7 @@ Technical and product documentation for the Revoca monorepo. Start here, then dr
 | If you want to… | Start here |
 |-----------------|------------|
 | Understand the system end-to-end | [architecture/overview.md](architecture/overview.md) |
+| See the whole front-to-back flow as diagrams | [architecture/flow.md](architecture/flow.md) |
 | Trace a query from UI to answer | [architecture/data-flow.md](architecture/data-flow.md) |
 | Run the project locally | [guides/onboarding.md](guides/onboarding.md) |
 | Call or implement an API endpoint | [api/contract.md](api/contract.md) |

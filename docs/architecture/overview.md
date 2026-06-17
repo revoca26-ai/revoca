@@ -86,4 +86,4 @@ Scheduled jobs live in the Worker, and each one takes a PostgreSQL advisory lock
 - **Phase 2:** WhatsApp Business, Zoom/Meet transcripts, GitHub, Notion, CSV/file upload.
 - **Phase 3:** Team analytics, admin console, SSO, usage-based billing, WhatsApp digest delivery.
 
-See [data-flow.md](data-flow.md) for step-by-step data movement and [decisions.md](decisions.md) for ADRs.
+See [flow.md](flow.md) for front-to-back arrow diagrams of every flow, [data-flow.md](data-flow.md) for step-by-step data movement, and [decisions.md](decisions.md) for ADRs.
