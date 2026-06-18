@@ -11,6 +11,7 @@ Technical and product documentation for the Revoca monorepo. Start here, then dr
 | Trace a query from UI to answer | [architecture/data-flow.md](architecture/data-flow.md) |
 | Run the project locally | [guides/onboarding.md](guides/onboarding.md) |
 | Build the project stage by stage | [guides/buildingFlow.md](guides/buildingFlow.md) |
+| Split backend work between two devs | [guides/backend-split.md](guides/backend-split.md) |
 | Call or implement an API endpoint | [api/contract.md](api/contract.md) |
 | Add a new integration | [backend/modules/integrations/](backend/modules/integrations/) |
 | Deploy to production | [guides/deployment.md](guides/deployment.md) |
