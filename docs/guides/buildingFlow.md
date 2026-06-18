@@ -33,7 +33,7 @@ Right now `backend/` is a single `index.ts`. Before writing any features, set up
   - `FRONTEND_URL` (required)
 - [ ] Import and call the env validation in `index.ts` before anything else
 - [ ] Update the existing CORS setup to use `FRONTEND_URL` from config instead of allowing everything
-- [ ] Update `.env` in backend with real local values
+- [ ] Update `.env` in backend with your Neon `DATABASE_URL` and other secrets
 
 ### You're done when
 
@@ -51,8 +51,9 @@ A "pool" is a set of reusable database connections. Instead of connecting to Pos
 
 ### What to build
 
-- [ ] Install PostgreSQL locally (Postgres.app on Mac is the easiest) and create a database called `revoca`
-- [ ] Enable the pgvector extension: connect to the DB and run `CREATE EXTENSION IF NOT EXISTS vector;`
+- [ ] Create a [Neon](https://neon.tech) project (always-on hosted Postgres — no local install needed)
+- [ ] In Neon **SQL Editor**, enable extensions: `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS vector;`
+- [ ] Copy the **pooled** connection string into `backend/.env` as `DATABASE_URL` (must include `?sslmode=require`)
 - [ ] Create `backend/db/pool.ts`:
   - Import `pg` (the `Pool` class)
   - Create and export a pool using `DATABASE_URL` from your config
@@ -65,8 +66,8 @@ A "pool" is a set of reusable database connections. Instead of connecting to Pos
 
 ### You're done when
 
-- `GET /health` returns `{ "status": "ok", "db": "connected" }`
-- Stopping Postgres and hitting `/health` returns `503` with `"db": "disconnected"`
+- `GET /health` returns `{ "status": "ok", "db": "connected" }` when `DATABASE_URL` points at Neon
+- Setting an invalid `DATABASE_URL` and hitting `/health` returns `503` with `"db": "disconnected"`
 - `/healthz` returns `200` regardless of DB state
 - You understand the difference between liveness and readiness checks
 
@@ -96,9 +97,9 @@ Migrations are numbered SQL files that run in order. Each one creates or modifie
 
 ### You're done when
 
-- `npm run migrate` on a fresh database creates all 4 tables
+- `npm run migrate` on a fresh Neon database creates all 4 tables
 - Running it again does nothing (already applied)
-- You can drop the DB, recreate it, run `npm run migrate`, and get the same schema
+- You can reset schema via a new Neon branch (or `DROP` + re-migrate) and get the same result
 - You understand why migrations exist instead of just running SQL by hand
 
 ---
@@ -222,7 +223,7 @@ Now that auth works, you need the rest of the tables before building features. Y
 
 ### You're done when
 
-- All tables from [database.md](../backend/database.md) exist in your local database
+- All tables from [database.md](../backend/database.md) exist in your Neon database
 - Throwing `new AppError('VALIDATION_ERROR', 400, 'Question too short')` in any route handler produces a clean JSON error response
 - `requireRole('admin')` blocks members from protected endpoints
 - `npm run migrate` on a fresh DB creates everything cleanly
@@ -713,7 +714,8 @@ This is the final stage. Build the remaining pages, wire up the Slack Events web
   - Responsive layout (works on mobile)
   - Clean typography and spacing
 - [ ] **Deploy:**
-  - **Railway:** create backend service (`ROLE=api`) + worker service (`ROLE=worker`, same image) + Postgres + Redis
+  - **Railway:** create backend service (`ROLE=api`) + worker service (`ROLE=worker`, same image) + Redis
+  - **Neon:** production Postgres (or reuse dev project with a `production` branch)
   - **Vercel:** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL`
   - Set up custom domains
   - Update OAuth redirect URIs for production

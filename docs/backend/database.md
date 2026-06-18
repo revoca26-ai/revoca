@@ -1,6 +1,6 @@
 # Database Schema
 
-PostgreSQL 15 + pgvector. **Every tenant-scoped table carries `org_id`** for isolation, and the repository layer always filters on it (see the rule at the bottom of this doc). Embeddings are 1536-dimensional vectors from OpenAI `text-embedding-3-small` (see [ADR-004](../architecture/decisions.md)).
+PostgreSQL 15 + pgvector on **[Neon](https://neon.tech)** (hosted). **Every tenant-scoped table carries `org_id`** for isolation, and the repository layer always filters on it (see the rule at the bottom of this doc). Embeddings are 1536-dimensional vectors from OpenAI `text-embedding-3-small` (see [ADR-004](../architecture/decisions.md)).
 
 ## Extensions
 

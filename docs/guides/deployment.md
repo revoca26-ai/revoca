@@ -19,16 +19,20 @@ railway login
 railway init          # link to GitHub repo
 ```
 
-### 2. Add PostgreSQL
+### 2. Add PostgreSQL (Neon)
 
-Railway dashboard → New → Database → PostgreSQL.
+Create a production project at [console.neon.tech](https://console.neon.tech) (or use a separate branch on your dev project for staging).
 
-Enable pgvector:
+In Neon **SQL Editor**:
+
 ```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Copy `DATABASE_URL` from Railway Postgres service.
+Copy the **pooled** connection string from **Connection details** and set it as `DATABASE_URL` in Railway.
+
+> **Alternative:** Railway dashboard → New → Database → PostgreSQL, then enable pgvector the same way. Neon is preferred for serverless scale-to-zero and branching.
 
 ### 3. Configure environment
 
@@ -41,7 +45,7 @@ Set all variables from [environment.md](../backend/environment.md) in Railway se
 | `FRONTEND_URL` | `https://app.revoca.app` |
 | `GOOGLE_REDIRECT_URI` | `https://api.revoca.app/api/v1/integrations/google/callback` |
 | `SLACK_REDIRECT_URI` | `https://api.revoca.app/api/v1/integrations/slack/callback` |
-| `DATABASE_URL` | Railway Postgres connection string |
+| `DATABASE_URL` | Neon pooled connection string (`?sslmode=require`) |
 
 Use Railway's secret management — never commit production secrets.
 

@@ -75,7 +75,7 @@ Every table carries an `org_id`. All queries include `WHERE org_id = $1`. Row-le
 | Frontend | Vercel | Static SPA, env vars for Clerk publishable key + API URL |
 | Backend API | Railway | Stateless web process (`ROLE=api`); horizontal scale via replicas; runs no cron |
 | Worker | Railway | Single instance (`ROLE=worker`); owns cron + ingestion; advisory-locked jobs |
-| PostgreSQL | Railway managed | pgvector extension enabled |
+| PostgreSQL | [Neon](https://neon.tech) | pgvector enabled; pooled connection for API/worker |
 | Redis | Railway managed | Shared store for distributed rate limiting ([ADR-013](decisions.md)) |
 
 Scheduled jobs live in the Worker, and each one takes a PostgreSQL advisory lock before running so a deploy overlap can't double-fire it. Phase 2 moves ingestion to a BullMQ queue with multiple workers.

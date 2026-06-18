@@ -4,7 +4,7 @@ All backend env vars. Copy `.env.example` to `backend/.env` for local dev.
 
 | Variable | Required | Description | Where to get it |
 |----------|----------|-------------|-----------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string (`postgresql://user:pass@host:5432/revoca`) | Local: Docker or Postgres.app. Prod: Railway Postgres dashboard |
+| `DATABASE_URL` | Yes | PostgreSQL connection string | **Dev:** [Neon](https://neon.tech) pooled URL (`?sslmode=require`). **Prod:** Neon or Railway Postgres |
 | `REDIS_URL` | Prod | Shared store for distributed rate limiting across API replicas ([ADR-013](../architecture/decisions.md)). Dev falls back to in-memory | Railway Redis dashboard |
 | `OPENAI_API_KEY` | Yes | Embeddings via `text-embedding-3-small` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | `ANTHROPIC_API_KEY` | Yes | Claude Haiku (query rewrite) + Sonnet (answer generation) | [console.anthropic.com](https://console.anthropic.com) |
@@ -51,4 +51,5 @@ The backend validates all required vars on startup. Missing vars cause a hard ex
 - Never log secret values or decrypted tokens.
 - `TOKEN_ENCRYPTION_KEY` is **versioned** (`v1:...`). To rotate, add `v2:...` as the active key while keeping `v1` available for decryption; a background re-encrypt pass upgrades existing ciphertext, after which `v1` can be retired. Ciphertext stores its key id so old and new keys coexist without downtime.
 - Use separate Clerk/Google/Slack/Cohere apps and keys for development and production.
-- Production `DATABASE_URL` must use SSL (`?sslmode=require`).
+- Production `DATABASE_URL` must use SSL (`?sslmode=require`). Neon includes this by default.
+- Neon pooled connections (hostname contains `-pooler`) are recommended for the API and worker. Use the direct (non-pooled) URL only if migrations fail through the pooler.

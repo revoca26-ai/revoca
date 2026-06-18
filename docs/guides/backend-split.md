@@ -72,6 +72,7 @@ Neither track can start feature work until this is done. Pair on it or split by 
 - [ ] Clerk webhook syncs user/org create/update/delete
 - [ ] `AppError` + error handler return the standard envelope from [contract.md](../api/contract.md)
 - [ ] Both devs can run `npm run dev` from the same environment (WSL **or** Windows — not both on shared `node_modules`)
+- [ ] `DATABASE_URL` points at the shared Neon project (or each dev's own Neon branch)
 
 ### Folder layout after Phase 0
 

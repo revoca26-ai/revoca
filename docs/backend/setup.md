@@ -5,7 +5,7 @@ Express API server for ingestion, search, ask, and background jobs.
 ## Prerequisites
 
 - Node.js 20 LTS
-- PostgreSQL 15+ with [pgvector](https://github.com/pgvector/pgvector) extension
+- [Neon](https://neon.tech) project with pgvector enabled (see [onboarding.md](../guides/onboarding.md#2-database--neon-5-min))
 - API keys: Clerk, Google Cloud (OAuth), Slack, OpenAI, Anthropic
 
 ## First-time setup
@@ -16,9 +16,12 @@ cp ../.env.example .env        # fill all values — see environment.md
 npm install
 ```
 
-### Enable pgvector
+### Enable pgvector on Neon
+
+In the Neon **SQL Editor** (or via your first migration):
 
 ```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
@@ -89,7 +92,8 @@ curl http://localhost:3000/api/v1/health
 
 | Symptom | Fix |
 |---------|-----|
-| `extension "vector" does not exist` | Run `CREATE EXTENSION vector;` on your database |
+| `extension "vector" does not exist` | Run `CREATE EXTENSION vector;` in Neon SQL Editor |
+| `Connection terminated` / SSL errors | Use Neon pooled `DATABASE_URL` with `?sslmode=require` |
 | Clerk JWT rejected | Verify `CLERK_SECRET_KEY` and that frontend uses the matching Clerk instance |
 | OAuth callback 404 | Ensure redirect URIs match Google/Slack app config exactly |
 | Embedding errors | Check `OPENAI_API_KEY` quota and that model `text-embedding-3-small` is accessible |
@@ -97,6 +101,6 @@ curl http://localhost:3000/api/v1/health
 ## Production notes
 
 - Set `NODE_ENV=production`
-- Use Railway-managed PostgreSQL with pgvector enabled
+- Use Neon (recommended) or Railway-managed PostgreSQL with pgvector enabled
 - Run `npm run migrate` as a deploy hook before starting the web process
 - Never commit `backend/.env` — it is gitignored

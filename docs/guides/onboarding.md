@@ -6,6 +6,7 @@ New developer setup: zero to running locally in 30 minutes.
 
 Request from team lead:
 - [ ] GitHub repo access
+- [ ] Neon project invite (or shared `DATABASE_URL` for dev)
 - [ ] Clerk dev instance invite
 - [ ] Google Cloud project viewer access (for OAuth credentials)
 - [ ] Slack app collaborator access
@@ -21,24 +22,41 @@ cd backend && npm install && cd ..
 cd frontend && npm install && cd ..
 ```
 
-## 2. Database (5 min)
+## 2. Database — Neon (5 min)
 
-**Option A — Docker:**
-```bash
-docker run -d \
-  --name revoca-db \
-  -e POSTGRES_PASSWORD=revoca \
-  -e POSTGRES_DB=revoca \
-  -p 5432:5432 \
-  pgvector/pgvector:pg16
+We use **[Neon](https://neon.tech)** for PostgreSQL — a hosted, always-on database with pgvector. No local Postgres or Docker required. Both developers can point at the same dev branch or use separate Neon projects.
+
+### Create a Neon project
+
+1. Sign up at [console.neon.tech](https://console.neon.tech)
+2. **New project** → name it `revoca` (PostgreSQL 16 is fine)
+3. Open **SQL Editor** and run:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-**Option B — Local Postgres + pgvector:**
-```bash
-brew install pgvector
-createdb revoca
-psql revoca -c "CREATE EXTENSION vector;"
+4. Go to **Dashboard → Connection details** and copy the connection string
+5. Use the **pooled** connection string for the app (`-pooler` in the hostname)
+
+Example `DATABASE_URL`:
+
 ```
+postgresql://user:password@ep-xxxx-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
+
+> **Tip:** Neon free tier pauses after inactivity but wakes on connect (~1 s cold start). For shared dev, create one Neon project and share credentials via your team lead (never commit them).
+
+### Optional — local Postgres (fallback)
+
+Only if you need fully offline dev:
+
+```bash
+docker run -d --name revoca-db -e POSTGRES_PASSWORD=revoca -e POSTGRES_DB=revoca -p 5432:5432 pgvector/pgvector:pg16
+```
+
+Then use `postgresql://postgres:revoca@localhost:5432/revoca` as `DATABASE_URL`.
 
 ## 3. Environment (5 min)
 
@@ -50,7 +68,7 @@ Fill in `backend/.env`:
 
 | Variable | Dev value |
 |----------|-----------|
-| `DATABASE_URL` | `postgresql://postgres:revoca@localhost:5432/revoca` |
+| `DATABASE_URL` | Neon pooled connection string (see step 2) |
 | `OPENAI_API_KEY` | From team lead |
 | `ANTHROPIC_API_KEY` | From team lead |
 | `CLERK_SECRET_KEY` | Clerk dashboard → dev instance → Secret key |
@@ -127,7 +145,8 @@ Add webhook in Clerk dashboard:
 
 | Problem | Fix |
 |---------|-----|
-| `extension "vector" does not exist` | Run `CREATE EXTENSION vector;` on your database |
+| `extension "vector" does not exist` | Run `CREATE EXTENSION vector;` in Neon SQL Editor |
+| `Connection refused` / SSL errors | Use Neon pooled URL with `?sslmode=require`; don't use `localhost` unless running local Docker |
 | Frontend shows blank page | Check browser console; verify `VITE_CLERK_PUBLISHABLE_KEY` is set |
 | OAuth redirect fails | Redirect URI must match exactly in provider app settings |
 | Clerk =401 on all API calls | Verify Clerk keys match between frontend and backend |

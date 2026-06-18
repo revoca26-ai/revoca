@@ -23,7 +23,7 @@ revoca/
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+, PostgreSQL 15+ with pgvector, accounts for Clerk, Google Cloud, Slack, OpenAI, and Anthropic.
+**Prerequisites:** Node.js 20+, [Neon](https://neon.tech) project with pgvector, accounts for Clerk, Google Cloud, Slack, OpenAI, and Anthropic.
 
 ```bash
 cp .env.example backend/.env   # fill in values — see docs/backend/environment.md
@@ -60,7 +60,7 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 |-------|--------|
 | Backend | TypeScript, Node.js, Express (stateless API replicas + one worker) |
 | Frontend | TypeScript, React 19, Vite |
-| Database | PostgreSQL 15 + pgvector (HNSW) |
+| Database | [Neon](https://neon.tech) PostgreSQL + pgvector (HNSW) |
 | Cache / limits | Redis (distributed rate limiting) |
 | Auth | Clerk |
 | Embeddings | OpenAI `text-embedding-3-small` |
