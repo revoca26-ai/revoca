@@ -4,10 +4,10 @@ All backend env vars. Copy `.env.example` to `backend/.env` for local dev.
 
 | Variable | Required | Description | Where to get it |
 |----------|----------|-------------|-----------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string | **Dev:** [Neon](https://neon.tech) pooled URL (`?sslmode=require`). **Prod:** Neon or Railway Postgres |
-| `REDIS_URL` | Prod | Shared store for distributed rate limiting across API replicas ([ADR-013](../architecture/decisions.md)). Dev falls back to in-memory | Railway Redis dashboard |
+| `DATABASE_URL` | Yes | PostgreSQL connection string | **Dev:** [Neon](https://neon.tech) pooled URL (`?sslmode=require`). **Prod:** AWS RDS Postgres or Neon |
+| `REDIS_URL` | Prod | Shared store for distributed rate limiting across API replicas ([ADR-013](../architecture/decisions.md)). Dev falls back to in-memory | AWS ElastiCache for Redis or Upstash |
 | `OPENAI_API_KEY` | Yes | Embeddings via `text-embedding-3-small` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
-| `ANTHROPIC_API_KEY` | Yes | Claude Haiku (query rewrite) + Sonnet (answer generation) | [console.anthropic.com](https://console.anthropic.com) |
+| `GEMINI_API_KEY` | Yes | Google Gemini 1.5 Flash (query rewrite + answer generation) | Google AI Studio key |
 | `COHERE_API_KEY` | Yes | Reranking via `rerank-english-v3.0` ([ADR-004](../architecture/decisions.md)) | [dashboard.cohere.com](https://dashboard.cohere.com) |
 | `CLERK_SECRET_KEY` | Yes | Backend JWT verification + webhook signing | Clerk dashboard → API Keys → Secret key |
 | `CLERK_WEBHOOK_SECRET` | Yes | Verify Clerk webhook signatures (`whsec_...`) | Clerk dashboard → Webhooks → signing secret |

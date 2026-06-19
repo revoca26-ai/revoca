@@ -10,7 +10,7 @@ Request from team lead:
 - [ ] Clerk dev instance invite
 - [ ] Google Cloud project viewer access (for OAuth credentials)
 - [ ] Slack app collaborator access
-- [ ] OpenAI + Anthropic API keys (shared dev keys)
+- [ ] OpenAI + Google Gemini API keys (shared dev keys)
 
 ## 1. Clone and install (3 min)
 
@@ -70,7 +70,7 @@ Fill in `backend/.env`:
 |----------|-----------|
 | `DATABASE_URL` | Neon pooled connection string (see step 2) |
 | `OPENAI_API_KEY` | From team lead |
-| `ANTHROPIC_API_KEY` | From team lead |
+| `GEMINI_API_KEY` | From team lead |
 | `CLERK_SECRET_KEY` | Clerk dashboard → dev instance → Secret key |
 | `CLERK_WEBHOOK_SECRET` | Clerk dashboard → Webhooks → dev endpoint |
 | `GOOGLE_CLIENT_ID` | Google Cloud → dev OAuth client |

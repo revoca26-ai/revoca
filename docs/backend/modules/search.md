@@ -30,10 +30,10 @@ Only chunks where `deleted_at IS NULL` and `embedding_status = 'ok'` are eligibl
 
 Top 20 candidates passed to the reranker → top 6 returned.
 
-**Phase 1 uses Cohere Rerank (`rerank-english-v3.0`)**, not a Claude-based reranker (revised — see [ADR-004](../../architecture/decisions.md)). Reasons:
-- **Latency:** ~100 ms vs. multiple seconds for a Claude rerank call, and it removes one LLM round-trip from the ask budget.
-- **Calibrated scores:** Cohere returns relevance scores in a stable [0,1] range, which is what makes the `0.55` confidence threshold ([ADR-007](../../architecture/decisions.md)) meaningful. A Claude-generated ranking produces arbitrary, uncalibrated numbers that the threshold can't reason about.
-- **Cost:** materially cheaper per query than a Sonnet rerank, which matters at SMB pricing.
+**Phase 1 uses Cohere Rerank (`rerank-english-v3.0`)**, not a model-based LLM reranker (revised — see [ADR-004](../../architecture/decisions.md)). Reasons:
+- **Latency:** ~100 ms vs. multiple seconds for an LLM-based rerank call, and it removes one LLM round-trip from the ask budget.
+- **Calibrated scores:** Cohere returns relevance scores in a stable [0,1] range, which is what makes the `0.55` confidence threshold ([ADR-007](../../architecture/decisions.md)) meaningful. An LLM-generated ranking produces arbitrary, uncalibrated numbers that the threshold can't reason about.
+- **Cost:** materially cheaper per query than an LLM rerank (like Gemini or Claude), which matters at SMB pricing.
 
 Reranker output: array of `{ chunkId, relevanceScore }` sorted descending. The top score becomes the query's `confidence`.
 

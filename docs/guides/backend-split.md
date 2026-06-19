@@ -202,11 +202,11 @@ backend/
 - [ ] Test against seeded chunks: relevant results rank above irrelevant ones
 
 #### Stage 14 — Ask pipeline
-- [ ] `rewrite.ts`: Claude Haiku → `{ searchTerms, intent }`
-- [ ] `answer.ts`: Claude Sonnet streaming with citation-only system prompt
+- [ ] `rewrite.ts`: Gemini 1.5 Flash → `{ searchTerms, intent }`
+- [ ] `answer.ts`: Gemini 1.5 Flash streaming with citation-only system prompt
 - [ ] `pipeline.ts`: rewrite → embed → search → rerank → confidence check (0.55) → answer
 - [ ] 25-second timeout → `status: timeout`
-- [ ] `insufficient_evidence` when top score < 0.55 (no Sonnet call)
+- [ ] `insufficient_evidence` when top score < 0.55 (no Gemini call)
 
 #### Stage 15 — Ask API + SSE
 - [ ] `POST /api/v1/ask` → validate, rate limit, quota check, persist query, dispatch pipeline, `202`
@@ -217,7 +217,7 @@ backend/
 - [ ] `middleware/rateLimit.ts`: 10 req/min per user (in-memory for dev)
 
 #### Stage 17 — Digest system
-- [ ] `summarizer.ts`: query last 24h chunks, Claude summary (skip if zero chunks)
+- [ ] `summarizer.ts`: query last 24h chunks, Gemini summary (skip if zero chunks)
 - [ ] `emailTemplate.ts`: simple HTML email
 - [ ] `sender.ts`: Resend/SendGrid + `digest_deliveries` log
 - [ ] `routes/digest.ts`: `GET/PATCH /api/v1/digest/settings` (admin/owner only)
@@ -324,7 +324,7 @@ Both tracks modify `index.ts` for worker startup. **Coordinate PRs** on this fil
 | `OAUTH_STATE_SECRET` | ✓ | |
 | `GOOGLE_CLIENT_*`, `SLACK_CLIENT_*` | ✓ | |
 | `OPENAI_API_KEY` | ✓ (embeddings) | uses same |
-| `ANTHROPIC_API_KEY` | | ✓ |
+| `GEMINI_API_KEY` | | ✓ |
 | `COHERE_API_KEY` | | ✓ |
 | `EMAIL_API_KEY`, `EMAIL_FROM` | | ✓ |
 

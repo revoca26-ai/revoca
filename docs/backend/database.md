@@ -122,7 +122,7 @@ CREATE INDEX idx_chunks_document_id ON chunks (document_id);
 | org_id | UUID FK | |
 | user_id | UUID FK | |
 | question | TEXT NOT NULL | Original user question |
-| rewritten_query | JSONB | Claude rewrite output |
+| rewritten_query | JSONB | Gemini rewrite output |
 | answer | TEXT | Generated answer (null if insufficient evidence) |
 | confidence | FLOAT | Top rerank score |
 | status | TEXT | `processing`, `completed`, `insufficient_evidence`, `failed`, `timeout` |

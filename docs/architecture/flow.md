@@ -18,7 +18,7 @@ Legend:
 ## 1. The big picture (everything at once)
 
 ```
-                                   BROWSER (Vercel SPA)
+                                   BROWSER (AWS Amplify SPA)
         ┌──────────────────────────────────────────────────────────────────┐
         │  React 19 + Vite                                                   │
         │  Clerk SDK  ·  useApi()  ·  useAsk()  ·  useIntegrations()         │
@@ -27,7 +27,7 @@ Legend:
                         │    (fresh from Clerk each call)    │
                         ▼                                    ▼
         ┌──────────────────────────────────────────────────────────────────┐
-        │                    API  (Railway, N stateless replicas)           │
+        │                 API  (AWS ECS Fargate, N stateless replicas)     │
         │                                                                    │
         │   middleware:  verifyJWT ─▶ resolveOrg ─▶ rateLimit ─▶ quota       │
         │   routes:      /me  /organization  /ask  /integrations  /digest    │
@@ -36,23 +36,23 @@ Legend:
             │               │               │               │
             │ SQL           │ rate-limit     │ enqueue       │ read/write
             ▼               ▼  counters      ▼  work         ▼
-   ┌────────────────┐  ┌──────────┐   ┌───────────────────────────────┐
-   │  PostgreSQL    │  │  Redis   │   │  WORKER (Railway, 1 instance)  │
-   │  + pgvector    │◀─┤ (limits) │   │  ROLE=worker                   │
-   │  (HNSW + GIN)  │  └──────────┘   │   • node-cron (advisory-locked)│
-   │                │◀───────────────▶│   • ingestion pipeline         │
-   └────────────────┘   read/write    │   • ask pipeline processing    │
+    ┌────────────────┐  ┌──────────┐   ┌───────────────────────────────┐
+    │  PostgreSQL    │  │  Redis   │   │  WORKER (AWS ECS Fargate, 1)  │
+    │  (AWS RDS)     │◀─┤(Elasti-  │   │  ROLE=worker                   │
+    │  (HNSW + GIN)  │  │ Cache)   │   │   • node-cron (advisory-locked)│
+    │                │  └──────────┘   │   • ingestion pipeline         │
+    └────────────────┘   read/write    │   • ask pipeline processing    │
             ▲                          └───┬───────────┬───────────┬────┘
             │ persist chunks/queries        │           │           │
             │                               ▼           ▼           ▼
             │                        ┌──────────┐ ┌──────────┐ ┌──────────┐
-            │                        │  OpenAI  │ │  Cohere  │ │ Anthropic│
-            │                        │  embed   │ │  rerank  │ │  Claude  │
+            │                        │  OpenAI  │ │  Cohere  │ │  Google  │
+            │                        │  embed   │ │  rerank  │ │  Gemini  │
             │                        └──────────┘ └──────────┘ └──────────┘
             │
             │ OAuth pull + webhooks (handled by the WORKER's connectors)
-   ┌────────┴─────────┬──────────────┐
-   ▼                  ▼              ▼
+    ┌────────┴─────────┬──────────────┐
+    ▼                  ▼              ▼
 Google Drive        Gmail         Slack
 ```
 
@@ -116,7 +116,7 @@ React ──▶ GET /api/v1/ask/:id/stream            (Server-Sent Events)
               ≈≈▶  event: status   { "status": "processing" }
               │
    WORKER pipeline runs:
-      1. rewriteQuery(question) ──▶ Claude Haiku ──◀ { searchTerms, intent }
+      1. rewriteQuery(question) ──▶ Gemini 1.5 Flash ──◀ { searchTerms, intent }
       2. embed(consolidated query) ──▶ OpenAI 3-small ──◀ vector(1536)
       3. hybrid search (PostgreSQL):
             semantic leg  (HNSW, top 20) ─┐
@@ -124,7 +124,7 @@ React ──▶ GET /api/v1/ask/:id/stream            (Server-Sent Events)
       4. rerank(top 20) ──▶ Cohere ──◀ top 6 with calibrated scores
       5. confidence = top score
             └─ if < 0.55 ─▶ status = insufficient_evidence ─▶ (skip step 6)
-      6. generateAnswer(6 chunks) ──▶ Claude Sonnet (streaming)
+      6. generateAnswer(6 chunks) ──▶ Gemini 1.5 Flash (streaming)
               │
               ≈≈▶  event: token   { "text": "Acme Corp was dropped" }
               ≈≈▶  event: token   { "text": " in March 2026..." }
@@ -251,7 +251,7 @@ WORKER · digestDelivery (hourly, advisory-locked)
    │
    ▼  for each org where now()@org.timezone == delivery_hour AND not sent today:
    ├─▶ SELECT chunks ingested in last 24h            ─ zero? ▶ skip (no empty digest)
-   ├─▶ summarize(chunks) ──▶ Claude ──◀ structured markdown
+   ├─▶ summarize(chunks) ──▶ Gemini 1.5 Flash ──◀ structured markdown
    ├─▶ renderEmail(summary) ─▶ responsive HTML + text fallback
    ├─▶ sendEmail(recipients) ──▶ Resend / SendGrid ──◀ accepted
    └─▶ INSERT digest_deliveries + UPDATE last_sent_at
@@ -264,16 +264,16 @@ See [digest.md](../backend/modules/digest.md).
 
 ---
 
-## 8. Where each concern is enforced
+## 8. Enforcing Security & Boundaries
 
 ```
 Tenant isolation ─▶ repository layer: every query has WHERE org_id = $1
-Rate limits      ─▶ Redis (shared across replicas)
+Rate limits      ─▶ Redis (shared across ECS replicas)
 Monthly quota    ─▶ usage_counters (atomic increment on completed asks)
 OAuth CSRF       ─▶ oauth_states (single-use, org/user-bound nonce)
 Token secrecy    ─▶ AES-256-GCM at rest; decrypted only in worker connectors
 Webhook trust    ─▶ raw-body signature verification (Svix / Slack HMAC)
-LLM safety       ─▶ Claude sees ≤ 6 chunks per ask, never the database
+LLM safety       ─▶ Gemini sees ≤ 6 chunks per ask, never the database
 ```
 
 ---

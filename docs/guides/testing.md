@@ -46,16 +46,16 @@ Seed test DB with known chunks and embeddings for deterministic results.
 
 | Test | What to verify |
 |------|---------------|
-| Full pipeline | Question → answer with citations (mock Haiku + OpenAI + Cohere + Sonnet) |
+| Full pipeline | Question → answer with citations (mock Gemini + OpenAI + Cohere) |
 | Accept + dispatch | `POST /ask` returns `202 { id }` and persists `status: processing` |
 | Streaming | `/ask/:id/stream` emits status → token* → sources → done |
-| Insufficient evidence | Low-confidence ends with `done`, `status: insufficient_evidence`, no Sonnet call |
+| Insufficient evidence | Low-confidence ends with `done`, `status: insufficient_evidence`, no Gemini call |
 | Timeout | Pipeline exceeding 25 s budget sets `status: timeout` and emits a `QUERY_TIMEOUT` stream error |
 | Validation | Question < 3 chars returns `VALIDATION_ERROR` |
 | Rate limit | 11th request in 1 min returns `429 RATE_LIMITED` |
 | Quota | Ask past the monthly plan allowance returns `429 QUOTA_EXCEEDED`; only `completed` queries count |
 
-Mock external APIs in tests. Never call OpenAI/Anthropic in CI.
+Mock external APIs in tests. Never call OpenAI/Gemini in CI.
 
 ### Integration connectors
 
@@ -112,7 +112,7 @@ Playwright tests against staging environment:
 
 - Clerk UI flows (tested by Clerk)
 - OAuth provider consent screens
-- Exact Claude/OpenAI response content (non-deterministic; test structure, not content)
+- Exact Gemini/OpenAI response content (non-deterministic; test structure, not content)
 
 ## Coverage targets
 

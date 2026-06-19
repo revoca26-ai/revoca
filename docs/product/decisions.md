@@ -28,7 +28,7 @@ Key product decisions and rationale.
 
 **Why $20 floor:**
 - Below $20 feels "too cheap to trust" for a product handling business email and Slack
-- Covers API costs (OpenAI embeddings + Claude) for ~100 queries/month with margin
+- Covers API costs (OpenAI embeddings + Gemini) for ~100 queries/month with margin
 - 10× cheaper than the cheapest enterprise alternative
 
 **Why $50 Pro tier:**
@@ -69,7 +69,7 @@ Key product decisions and rationale.
 **Why:**
 - Creates daily engagement even when users don't actively query
 - Demonstrates value before the user asks their first question ("Here's what happened in your business yesterday")
-- Low engineering cost — reuses the same Claude summarization pipeline
+- Low engineering cost — reuses the same Gemini summarization pipeline
 - Differentiator vs. pure search tools (Glean doesn't push proactive summaries to SMBs)
 
 ---

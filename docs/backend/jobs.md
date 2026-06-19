@@ -55,7 +55,7 @@ Every hour at :00:
     If current hour in org.timezone == digest_settings.delivery_hour
     AND last_sent_at < today in org timezone:
       1. Fetch chunks ingested in last 24h
-      2. Claude summarize → digest text
+      2. Gemini summarize → digest text
       3. Send email to digest_settings.email_recipients
       4. Insert digest_deliveries row
       5. Update last_sent_at
@@ -97,11 +97,11 @@ Soft deletes (from disconnects and content updates) are removed after a 7-day gr
 ## Error handling
 
 - Jobs never crash the process. Uncaught errors are logged and the job continues to the next item.
-- Critical failures (DB unreachable) log at `error` level and exit the process (Railway restarts).
+- Critical failures (DB unreachable) log at `error` level and exit the process (AWS ECS restarts the task).
 - Job metrics (duration, items processed, failures) are logged as structured JSON for future observability integration.
 
 ## Phase 2 migration
 
 When sync volume exceeds ~10k chunks/day per org **or** the single Worker saturates CPU:
 - Move `integrationSync`/ingestion onto a BullMQ + Redis queue with multiple Worker replicas (the advisory-lock pattern already makes this safe).
-- Keep lightweight schedulers (`digestDelivery`, `tokenRefresh`, cleanup jobs) on the Worker or move to Railway cron triggers.
+- Keep lightweight schedulers (`digestDelivery`, `tokenRefresh`, cleanup jobs) on the Worker or move to AWS EventBridge scheduled tasks.

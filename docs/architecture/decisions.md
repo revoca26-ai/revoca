@@ -44,20 +44,20 @@ Architecture Decision Records for Revoca. Status: **Accepted** unless marked oth
 
 **Status:** Accepted (revised — replaces ada-002 embeddings and Claude-for-everything)
 
-**Context:** Each ask runs up to three model stages (rewrite → rerank → answer) plus embeddings. Using the largest model for every stage was the original plan, but it serialized three Claude calls into a ~30 s budget and inflated per-query cost — which directly threatens unit economics at $20/100-queries pricing.
+**Context:** Each ask runs up to three model stages (rewrite → rerank → answer) plus embeddings. Using the largest model for every stage was the original plan, but it serialized three model calls into a ~30 s budget and inflated per-query cost — which directly threatens unit economics at $20/100-queries pricing.
 
 **Decision:** Pick the cheapest model that is good enough per stage:
 
 | Stage | Model | Rationale |
 |-------|-------|-----------|
 | Embeddings | OpenAI `text-embedding-3-small` (1536-dim) | ~5× cheaper than `ada-002`, higher retrieval quality, same dimensionality (drop-in). |
-| Query rewrite | Claude Haiku | Cheap, fast (<1 s); rewrite is a light transformation, not deep reasoning. |
-| Rerank | Cohere Rerank (`rerank-english-v3.0`) | Purpose-built cross-encoder; ~100 ms vs. multi-second Claude rerank; returns **calibrated** relevance scores that make the confidence threshold meaningful (see ADR-007). |
-| Answer generation | Claude Sonnet (**streaming**) | Best reasoning for the user-facing answer; streamed token-by-token (see ADR-012). |
+| Query rewrite | Google Gemini 1.5 Flash | Cheap, extremely fast, high accuracy; rewrite is a light transformation, not deep reasoning. |
+| Rerank | Cohere Rerank (`rerank-english-v3.0`) | Purpose-built cross-encoder; ~100 ms vs. multi-second LLM rerank; returns **calibrated** relevance scores that make the confidence threshold meaningful (see ADR-007). |
+| Answer generation | Google Gemini 1.5 Flash (**streaming**) | Best reasoning for the user-facing answer under the budget constraints; streamed token-by-token (see ADR-012). |
 
-**Alternatives rejected:** `ada-002` (legacy, costlier, weaker). Claude-based reranker (slow, uncalibrated scores broke the confidence threshold). Single-vendor embeddings (Anthropic embeddings less mature at decision time).
+**Alternatives rejected:** `ada-002` (legacy, costlier, weaker). LLM-based reranker (slow, uncalibrated scores broke the confidence threshold). Single-vendor embeddings. Anthropic Claude (deferred to Phase 2 to optimize price/performance ratio in early MVP stage).
 
-**Consequences:** Three vendor keys (OpenAI, Anthropic, Cohere). Embedding dimension fixed at 1536; changing it is a re-embed migration. Per-query LLM cost drops substantially and p95 latency improves.
+**Consequences:** Three vendor keys (OpenAI, Google, Cohere). Embedding dimension fixed at 1536; changing it is a re-embed migration. Per-query LLM cost drops substantially and p95 latency improves.
 
 ---
 
@@ -105,15 +105,15 @@ Architecture Decision Records for Revoca. Status: **Accepted** unless marked oth
 1. The API runs **multiple replicas** for horizontal scale (see overview.md). If every replica runs node-cron, every scheduled job fires N times → duplicate syncs, duplicate provider API calls (rate-limit bans), and **N copies of every digest email**.
 2. Ingestion is **CPU-bound** (tokenization, chunking). Running it in the same event loop as the API adds latency/jitter to live `POST /ask` requests.
 
-**Decision:** Ship the same image with two entrypoints, selected by a `ROLE` env var:
-- `ROLE=api` — stateless HTTP, scaled to N replicas, runs **no** cron.
-- `ROLE=worker` — a **single** instance that runs node-cron and the ingestion pipeline.
+**Decision:** Ship the same Docker container image deployed as two separate AWS ECS Fargate services, selected by a `ROLE` env var:
+- `ROLE=api` — stateless HTTP, running as N tasks behind an ALB, runs **no** cron.
+- `ROLE=worker` — a **single** task instance that runs node-cron and the ingestion pipeline.
 
 As defense-in-depth (and to make a future move to multiple workers safe), each scheduled job acquires a PostgreSQL advisory lock (`pg_try_advisory_lock`) before running and skips if it can't — so a job never double-fires even if two workers briefly overlap during a deploy.
 
 **Migration trigger (Phase 2):** Move ingestion to a real queue (BullMQ + Redis) and scale workers horizontally when sync volume exceeds ~10k chunks/day per org **or** worker CPU saturates.
 
-**Consequences:** One extra always-on process in Phase 1 (cheap). No duplicate jobs, no event-loop contention on the API.
+**Consequences:** One extra always-on Fargate task in Phase 1 (cheap). No duplicate jobs, no event-loop contention on the API.
 
 ---
 
@@ -123,7 +123,7 @@ As defense-in-depth (and to make a future move to multiple workers safe), each s
 
 **Context:** Frontend and backend deploy separately but share env conventions, docs, and — critically — the API contract. Both are now TypeScript, so the original "no shared types in Phase 1" stance leaves money on the table: the contract can drift silently between server and client.
 
-**Decision:** Root `package.json` orchestrates both via `concurrently`; separate deploy targets (Vercel / Railway). Add a `packages/shared` workspace exporting **Zod schemas** for every request/response body. The backend validates inputs with these schemas at the edge; the frontend imports the inferred types for its API client. The contract docs remain human-readable, but the Zod schemas are the executable source of truth, and an OpenAPI document is generated from them (`zod-to-openapi`).
+**Decision:** Root `package.json` orchestrates both via `concurrently`; separate deploy targets (AWS Amplify / AWS ECS Fargate). Add a `packages/shared` workspace exporting **Zod schemas** for every request/response body. The backend validates inputs with these schemas at the edge; the frontend imports the inferred types for its API client. The contract docs remain human-readable, but the Zod schemas are the executable source of truth, and an OpenAPI document is generated from them (`zod-to-openapi`).
 
 **Consequences:** Request validation, response typing, and the published contract all derive from one definition. A breaking field change fails the build instead of reaching production.
 

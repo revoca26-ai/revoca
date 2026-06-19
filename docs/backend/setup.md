@@ -6,7 +6,7 @@ Express API server for ingestion, search, ask, and background jobs.
 
 - Node.js 20 LTS
 - [Neon](https://neon.tech) project with pgvector enabled (see [onboarding.md](../guides/onboarding.md#2-database--neon-5-min))
-- API keys: Clerk, Google Cloud (OAuth), Slack, OpenAI, Anthropic
+- API keys: Clerk, Google Cloud (OAuth), Slack, OpenAI, Gemini
 
 ## First-time setup
 
@@ -101,6 +101,6 @@ curl http://localhost:3000/api/v1/health
 ## Production notes
 
 - Set `NODE_ENV=production`
-- Use Neon (recommended) or Railway-managed PostgreSQL with pgvector enabled
-- Run `npm run migrate` as a deploy hook before starting the web process
+- Use AWS RDS PostgreSQL (recommended) or Neon with pgvector enabled
+- Run `npm run migrate` as a deploy hook or container startup step before starting the web process
 - Never commit `backend/.env` — it is gitignored

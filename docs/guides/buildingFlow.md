@@ -450,26 +450,26 @@ Semantic search finds "we terminated the Acme contract" when you ask "why did we
 
 **What you'll learn:** How to chain multiple AI calls together into a pipeline, stream the answer back to the user, and handle the "I don't know" case.
 
-This is the core of Revoca. A user asks a question → Claude Haiku rewrites it into better search terms → you embed and search → Cohere reranks → if confidence is high enough, Claude Sonnet generates an answer from the top chunks → the answer streams back token by token.
+This is the core of Revoca. A user asks a question → Gemini 1.5 Flash rewrites it into better search terms → you embed and search → Cohere reranks → if confidence is high enough, Gemini 1.5 Flash generates an answer from the top chunks → the answer streams back token by token.
 
 ### What to build
 
-- [ ] Add `ANTHROPIC_API_KEY` to env validation
+- [ ] Add `GEMINI_API_KEY` to env validation
 - [ ] Create `backend/modules/ask/rewrite.ts`:
-  - Send the user's question to Claude Haiku with a prompt like: "Rewrite this question into search terms and identify the intent"
+  - Send the user's question to Gemini 1.5 Flash with a prompt like: "Rewrite this question into search terms and identify the intent"
   - Return `{ searchTerms: string[], intent: string }`
 - [ ] Create `backend/modules/ask/answer.ts`:
-  - Send the top 6 chunks + the user's question to Claude Sonnet
+  - Send the top 6 chunks + the user's question to Gemini 1.5 Flash
   - System prompt: "Answer ONLY based on the provided sources. Cite sources as [1], [2], etc. If the sources don't contain the answer, say so."
-  - **Stream** the response (use Anthropic's streaming API)
+  - **Stream** the response (use Google Gemini's streaming API)
   - Return a stream of tokens + the final answer text
 - [ ] Create `backend/modules/ask/pipeline.ts` — orchestrates the full flow:
-  1. Claude Haiku rewrites the question
+  1. Gemini 1.5 Flash rewrites the question
   2. Embed the rewritten search terms (same embedder from Stage 12)
   3. Hybrid search (Stage 13)
   4. Cohere reranks to top 6
-  5. **Confidence check:** if the top relevance score < `0.55` → stop here, return `status: insufficient_evidence` (no Sonnet call, no answer generated)
-  6. Claude Sonnet streams the answer from the 6 chunks
+  5. **Confidence check:** if the top relevance score < `0.55` → stop here, return `status: insufficient_evidence` (no Gemini call, no answer generated)
+  6. Gemini 1.5 Flash streams the answer from the 6 chunks
   7. Return everything: answer, sources, confidence, latency
 - [ ] Add a 25-second timeout — if the pipeline takes longer, return `status: timeout`
 - [ ] Test: mock the LLM calls, run the pipeline, verify the flow and the confidence threshold behavior
@@ -567,7 +567,7 @@ Your API should only handle HTTP requests. Scheduled tasks (syncing integrations
 
 **What you'll learn:** How to generate AI summaries of recent activity and deliver them as formatted emails.
 
-The morning digest is a daily email summarizing what happened across the user's connected tools in the last 24 hours. It reuses your existing Claude integration and adds email delivery.
+The morning digest is a daily email summarizing what happened across the user's connected tools in the last 24 hours. It reuses your existing Gemini integration and adds email delivery.
 
 ### What to build
 
@@ -575,7 +575,7 @@ The morning digest is a daily email summarizing what happened across the user's 
 - [ ] Create `backend/modules/digest/summarizer.ts`:
   - Query chunks ingested in the last 24h for the org
   - If zero chunks → skip this org (no empty digests)
-  - Send chunks to Claude with a prompt: "Summarize the key activity from these business communications. Group by: decisions made, blockers raised, new documents, notable threads."
+  - Send chunks to Gemini with a prompt: "Summarize the key activity from these business communications. Group by: decisions made, blockers raised, new documents, notable threads."
   - Return the structured summary
 - [ ] Create `backend/modules/digest/emailTemplate.ts`:
   - Build an HTML email from the summary (keep it simple and clean — a styled `<div>` with sections, not a complex template)
@@ -594,7 +594,7 @@ The morning digest is a daily email summarizing what happened across the user's 
 
 ### You're done when
 
-- The digest job finds recent content, summarizes it with Claude, and sends an email
+- The digest job finds recent content, summarizes it with Gemini, and sends an email
 - Orgs with no new content are skipped
 - `PATCH /digest/settings` saves changes; only admins/owners can update
 - You receive a real test digest email
@@ -714,10 +714,11 @@ This is the final stage. Build the remaining pages, wire up the Slack Events web
   - Responsive layout (works on mobile)
   - Clean typography and spacing
 - [ ] **Deploy:**
-  - **Railway:** create backend service (`ROLE=api`) + worker service (`ROLE=worker`, same image) + Redis
-  - **Neon:** production Postgres (or reuse dev project with a `production` branch)
-  - **Vercel:** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL`
-  - Set up custom domains
+  - **AWS Amplify:** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL`
+  - **AWS ECS Fargate:** create backend service (`ROLE=api` tasks behind ALB) + worker service (`ROLE=worker` single task)
+  - **AWS RDS PostgreSQL:** production database (or Neon)
+  - **AWS ElastiCache for Redis:** rate limiting cache (or Upstash)
+  - Set up custom domains via Route 53
   - Update OAuth redirect URIs for production
   - Run the post-deploy checklist from [deployment.md](deployment.md)
 - [ ] Set up uptime monitoring on `/health`

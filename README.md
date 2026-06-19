@@ -23,7 +23,7 @@ revoca/
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+, [Neon](https://neon.tech) project with pgvector, accounts for Clerk, Google Cloud, Slack, OpenAI, and Anthropic.
+**Prerequisites:** Node.js 20+, [AWS RDS](https://aws.amazon.com/rds/) or [Neon](https://neon.tech) project with pgvector, accounts for Clerk, Google Cloud, Slack, OpenAI, and Google Gemini.
 
 ```bash
 cp .env.example backend/.env   # fill in values — see docs/backend/environment.md
@@ -65,9 +65,9 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 | Auth | Clerk |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Rerank | Cohere `rerank-english-v3.0` |
-| LLM | Anthropic Claude (Haiku rewrite, Sonnet answer, streamed) |
+| LLM | Google Gemini (1.5 Flash rewrite, 1.5 Flash answer, streamed) |
 | Jobs | node-cron in the worker (advisory-locked) |
-| Deploy | Railway (API + worker), Vercel (frontend) |
+| Deploy | AWS (Amplify for frontend, ECS Fargate for API + worker) |
 
 ## License
 

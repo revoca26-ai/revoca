@@ -77,7 +77,7 @@ POST /api/v1/ask  { "question": "Why did we stop using Acme Corp?" }
   ├─ Validate + rate limit + quota → persist query (processing) → 202 { id }
   │     (client then opens GET /ask/:id/stream — SSE)
   │
-  ├─ Claude Haiku rewrite → { "searchTerms": [...], "intent": "decision_rationale" }
+  ├─ Gemini 1.5 Flash rewrite → { "searchTerms": [...], "intent": "decision_rationale" }
   │
   ├─ Embed consolidated query (text-embedding-3-small)
   │
@@ -90,7 +90,7 @@ POST /api/v1/ask  { "question": "Why did we stop using Acme Corp?" }
   │
   ├─ Confidence check: if top relevance < 0.55 → status insufficient_evidence (stop)
   │
-  ├─ Claude Sonnet answer generation, STREAMED (answer ONLY from provided chunks)
+  ├─ Gemini 1.5 Flash answer generation, STREAMED (answer ONLY from provided chunks)
   │     → token events pushed to SSE as they generate
   │
   └─ done event + persisted result:
@@ -106,7 +106,7 @@ POST /api/v1/ask  { "question": "Why did we stop using Acme Corp?" }
 ```
 node-cron (daily 06:00 UTC per org timezone setting)
   → SELECT chunks WHERE ingested_at > now() - interval '24 hours' AND org_id = $1
-  → Claude summarizes key activity (decisions, blockers, new docs, notable threads)
+  → Gemini 1.5 Flash summarizes key activity (decisions, blockers, new docs, notable threads)
   → Render HTML email template
   → Send via transactional email provider (Resend/SendGrid)
   → Log digest_deliveries row

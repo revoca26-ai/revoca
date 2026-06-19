@@ -8,7 +8,7 @@ Nightly summary of ingested content, delivered via email (Phase 1) and WhatsApp 
 digestScheduler (hourly cron)
   → for each org at delivery_hour:
       1. fetchRecentContent(orgId, 24h)
-      2. summarize(orgId, chunks) → Claude
+      2. summarize(orgId, chunks) → Gemini
       3. renderEmail(summary) → HTML template
       4. sendEmail(recipients, html)
       5. log digest_deliveries
@@ -31,7 +31,7 @@ If zero chunks → skip delivery (no empty digest emails).
 
 ## Summarization prompt
 
-Claude receives all chunk summaries grouped by source type and produces:
+Gemini receives all chunk summaries grouped by source type and produces:
 
 - **Key decisions** — anything that looks like a decision or policy change
 - **Active discussions** — notable Slack threads
@@ -63,7 +63,7 @@ Managed via `PATCH /api/v1/digest/settings`:
 modules/digest/
 ├── digestService.ts       Orchestrator
 ├── fetchRecentContent.ts  24h chunk query
-├── summarize.ts           Claude summarization
+├── summarize.ts           Gemini summarization
 ├── renderEmail.ts         HTML template
 └── sendEmail.ts           Email provider client
 ```

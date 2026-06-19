@@ -20,11 +20,11 @@ GET /api/v1/ask/:id/stream  (Server-Sent Events)
   → emits: status → token* → sources → done | error
 
 askService.process(queryId):
-  1. rewriteQuery(question)        → Claude Haiku
+  1. rewriteQuery(question)        → Gemini 1.5 Flash
   2. searchService.hybridSearch()  → top 20 (RRF)
   3. searchService.rerank()        → top 6 (Cohere, calibrated scores)
   4. confidenceCheck(topScore)     → pass or status = insufficient_evidence
-  5. generateAnswer(chunks)        → Claude Sonnet, streamed token-by-token
+  5. generateAnswer(chunks)        → Gemini 1.5 Flash, streamed token-by-token
   6. buildCitations(chunks)        → source objects
   7. UPDATE query (answer, confidence, status, latency_ms) + INSERT query_sources
 ```
@@ -33,7 +33,7 @@ The pipeline writes progress to the `queries` row and pushes events to any conne
 
 ## Query rewrite
 
-Claude receives the raw question and returns structured JSON:
+Gemini receives the raw question and returns structured JSON:
 
 ```json
 {
@@ -43,7 +43,7 @@ Claude receives the raw question and returns structured JSON:
 }
 ```
 
-Model: **Claude Haiku** (cheap, fast — rewrite is a light transformation). The consolidated query string is embedded once for retrieval; see [search.md](search.md#query-embedding-strategy).
+Model: **Gemini 1.5 Flash** (cheap, fast — rewrite is a light transformation). The consolidated query string is embedded once for retrieval; see [search.md](search.md#query-embedding-strategy).
 
 ## Answer generation
 
@@ -53,7 +53,7 @@ System prompt constraints:
 - If chunks are contradictory, state the conflict explicitly.
 - Never fabricate names, dates, or decisions not present in chunks.
 
-Model: **Claude Sonnet**, **streamed**. Max output tokens: 1024. Temperature: 0. Tokens are forwarded to the SSE stream as they arrive (`token` events) and concatenated into the persisted `answer`.
+Model: **Gemini 1.5 Flash**, **streamed**. Max output tokens: 1024. Temperature: 0. Tokens are forwarded to the SSE stream as they arrive (`token` events) and concatenated into the persisted `answer`.
 
 ## Confidence threshold
 
@@ -75,9 +75,9 @@ Because ask is asynchronous, these are **processing budgets** enforced by the wo
 
 | Step | Budget |
 |------|--------|
-| Query rewrite (Haiku) | 3 s |
+| Query rewrite (Gemini) | 3 s |
 | Hybrid search + rerank (Cohere) | 2 s |
-| Answer generation (Sonnet, streamed) | 20 s |
+| Answer generation (Gemini, streamed) | 20 s |
 | **Total** | **25 s** |
 
 Exceeding the total flips the `queries` row to `status = 'timeout'` and emits an `error` event (`QUERY_TIMEOUT`) on the stream. Typical time-to-first-token is < 2 s thanks to streaming.
@@ -92,8 +92,8 @@ Exceeding the total flips the `queries` row to `status = 'timeout'` and emits an
 ```
 modules/ask/
 ├── askService.ts          Orchestrator (async pipeline + status transitions)
-├── rewriteQuery.ts        Claude Haiku query rewrite
-├── generateAnswer.ts      Claude Sonnet streamed answer + citation parsing
+├── rewriteQuery.ts        Gemini 1.5 Flash query rewrite
+├── generateAnswer.ts      Gemini 1.5 Flash streamed answer + citation parsing
 ├── buildCitations.ts      Map chunks → source response objects
 └── stream.ts              SSE event publisher (status/token/sources/done/error)
 routes/ask.ts              POST /ask, GET /ask/:id, GET /ask/:id/stream, GET /ask/history

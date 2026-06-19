@@ -25,7 +25,7 @@ All errors follow the standard envelope:
 | 422 | Valid syntax but semantic validation failure |
 | 429 | Rate limit or monthly quota exceeded |
 | 500 | Unexpected server error |
-| 502 | Upstream provider error (Google, Slack, OpenAI, Anthropic, Cohere) |
+| 502 | Upstream provider error (Google, Slack, OpenAI, Gemini, Cohere) |
 
 Note: the ask pipeline is asynchronous ([ADR-012](../../architecture/decisions.md)), so a slow query is **not** an HTTP `504`. `POST /ask` returns `202` immediately; a processing timeout surfaces as a `QUERY_TIMEOUT` `error` event on the SSE stream and sets the query's `status` to `timeout`.
 
@@ -90,7 +90,7 @@ Note: the ask pipeline is asynchronous ([ADR-012](../../architecture/decisions.m
 | `QUERY_NOT_FOUND` | 404 | Query not found | GET /ask/:id or /ask/:id/stream for nonexistent or other-org query |
 | `QUOTA_EXCEEDED` | 429 | Monthly query limit reached | Org has used its plan's monthly `ask` allowance |
 | `EMBEDDING_FAILED` | — (stream `error`) | Embedding service unavailable | OpenAI API error during search |
-| `LLM_FAILED` | — (stream `error`) | Answer generation failed | Anthropic API error |
+| `LLM_FAILED` | — (stream `error`) | Answer generation failed | Google Gemini API error |
 | `RERANK_FAILED` | — (stream `error`) | Reranking service unavailable | Cohere API error |
 
 `POST /ask` itself only fails synchronously with `VALIDATION_ERROR`, `RATE_LIMITED`, or `QUOTA_EXCEEDED`. Failures *during* processing (`QUERY_TIMEOUT`, `EMBEDDING_FAILED`, `LLM_FAILED`, `RERANK_FAILED`) arrive as `error` events on `GET /ask/:id/stream` and set the query's terminal `status`.
