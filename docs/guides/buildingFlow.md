@@ -20,19 +20,24 @@ Right now `backend/` is a single `index.ts`. Before writing any features, set up
   ├── config/
   │   └── env.ts           ← validate env vars here
   ├── middleware/           ← empty for now
-  ├── routes/              ← empty for now
   ├── modules/             ← empty for now
   ├── db/                  ← empty for now
   ├── jobs/                ← empty for now
-  └── index.ts             ← already exists
+  ├── .env.example         ← env template (copied from root)
+  ├── .env                 ← local secrets (gitignored)
+  ├── app.ts               ← Express app setup (cors, JSON parser, routes)
+  └── index.ts             ← server entrypoint (validates env, starts DB, calls app.listen)
   ```
+- [ ] Split your Express initialization to separate testing concerns (best practice):
+  - In `backend/app.ts`, export the initialized `app` object with all middleware and routes attached (but **no** `app.listen()`). This allows unit/integration tests to query the app via Supertest without binding to actual network ports.
+  - In `backend/index.ts`, run the env verification, import `app` and the DB connection pool, and start the server using `app.listen()`.
 - [ ] In `config/env.ts`, export a function that reads `process.env` and returns a typed config object. If any required var is missing, `console.error` a clear message listing what's absent and call `process.exit(1)`. Start with just these vars for now:
   - `DATABASE_URL` (required)
   - `PORT` (optional, default `3000`)
   - `NODE_ENV` (optional, default `development`)
   - `FRONTEND_URL` (required)
 - [ ] Import and call the env validation in `index.ts` before anything else
-- [ ] Update the existing CORS setup to use `FRONTEND_URL` from config instead of allowing everything
+- [ ] Update the existing CORS setup in `app.ts` to use `FRONTEND_URL` from config instead of allowing everything
 - [ ] Update `.env` in backend with your Neon `DATABASE_URL` and other secrets
 
 ### You're done when
@@ -283,7 +288,7 @@ This is where users connect their Slack, Gmail, and Google Drive accounts. The f
   - `exchangeCode(code)` → POST to Google's token endpoint, return access + refresh tokens
 - [ ] Implement `backend/modules/integrations/connectors/slack.ts`:
   - Same pattern for Slack OAuth V2
-- [ ] Create `backend/routes/integrations.ts` with these endpoints:
+- [ ] Create `backend/modules/integrations/integrationsRouter.ts` with these endpoints:
   - `GET /api/v1/integrations` — list all integrations for the org (already started in Stage 4)
   - `POST /api/v1/integrations/:provider/connect` — auth required; create OAuth state, return `{ authorizeUrl }`
   - `GET /api/v1/integrations/google/callback` — no auth header (browser redirect); validate state, exchange code, encrypt tokens, store integration, redirect to `FRONTEND_URL/integrations?connected=gmail`
@@ -492,7 +497,7 @@ A normal REST endpoint processes the request and returns the result. But the ask
 
 ### What to build
 
-- [ ] Create `backend/routes/ask.ts`:
+- [ ] Create `backend/modules/ask/askRouter.ts`:
   - `POST /api/v1/ask` — validates question (3–2000 chars), checks rate limit, checks monthly quota, persists a `queries` row with `status: processing`, kicks off the pipeline in the background, returns `202 { id, status: "processing" }`
   - `GET /api/v1/ask/:id/stream` — SSE endpoint:
     - Set headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`
@@ -583,7 +588,7 @@ The morning digest is a daily email summarizing what happened across the user's 
 - [ ] Create `backend/modules/digest/sender.ts`:
   - Send via Resend or SendGrid API
   - Log a `digest_deliveries` row (status: sent/failed)
-- [ ] Create `backend/routes/digest.ts`:
+- [ ] Create `backend/modules/digest/digestRouter.ts`:
   - `GET /api/v1/digest/settings` — read settings for the org
   - `PATCH /api/v1/digest/settings` — update (admin/owner only): `enabled`, `deliveryHour` (0–23), `emailRecipients` (valid emails, max 10)
 - [ ] Wire the `digestDelivery` job in the Worker (Stage 16):
@@ -701,7 +706,7 @@ This is the final stage. Build the remaining pages, wire up the Slack Events web
   - Admin/owner only — redirect members to `/`
 - [ ] Create `src/hooks/useUser.ts` — fetches `GET /me`, exposes user/org/usage
 - [ ] Show monthly usage in the Navbar or on Home: "73 / 100 queries used"
-- [ ] Create `backend/routes/webhooks.ts`:
+- [ ] Add webhook endpoints to `backend/modules/integrations/integrationsRouter.ts` (or a dedicated webhook handler inside the integration module):
   - `POST /api/v1/webhooks/slack` — Slack Events API
   - Raw body parser (for signature verification)
   - Verify `X-Slack-Signature` + `X-Slack-Request-Timestamp`

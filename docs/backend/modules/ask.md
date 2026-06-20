@@ -91,12 +91,12 @@ Exceeding the total flips the `queries` row to `status = 'timeout'` and emits an
 
 ```
 modules/ask/
+├── askRouter.ts           POST /ask, GET /ask/:id, GET /ask/:id/stream, GET /ask/history
 ├── askService.ts          Orchestrator (async pipeline + status transitions)
 ├── rewriteQuery.ts        Gemini 1.5 Flash query rewrite
 ├── generateAnswer.ts      Gemini 1.5 Flash streamed answer + citation parsing
 ├── buildCitations.ts      Map chunks → source response objects
 └── stream.ts              SSE event publisher (status/token/sources/done/error)
-routes/ask.ts              POST /ask, GET /ask/:id, GET /ask/:id/stream, GET /ask/history
 ```
 
 ## Dependencies

@@ -88,7 +88,6 @@ backend/
 │   ├── errorHandler.ts
 │   └── requireRole.ts
 ├── migrations/             ← 001–010 applied
-├── routes/                 ← empty — each track adds their routes
 ├── modules/                ← empty — each track adds their modules
 ├── jobs/                   ← empty until Stage 16
 └── index.ts
@@ -107,10 +106,10 @@ backend/
 |------|-----------------|
 | Token security | `modules/integrations/encryption.ts`, `oauthState.ts` |
 | OAuth connectors | `modules/integrations/connectors/google.ts`, `slack.ts` |
-| Integration routes | `routes/integrations.ts` |
+| Integration routes | `modules/integrations/integrationsRouter.ts` |
 | Ingest pipeline | `modules/ingest/chunker.ts`, `embedder.ts`, `dedup.ts`, `pipeline.ts` |
 | Sync jobs | `jobs/integrationSync.ts`, `tokenRefresh.ts`, `oauthStateCleanup.ts`, `purgeDeleted.ts`, `syncJobCleanup.ts` |
-| Slack real-time | `routes/webhooks.ts` (Slack Events only) |
+| Slack real-time | `modules/integrations/integrationsRouter.ts` (Slack Events webhook) |
 
 ### Stage-by-stage work
 
@@ -166,7 +165,7 @@ backend/
 ### Track A does NOT touch
 
 - `modules/search/`, `modules/ask/`, `modules/digest/`
-- `routes/ask.ts`, `routes/digest.ts`
+- `modules/ask/askRouter.ts`, `modules/digest/digestRouter.ts`
 - `middleware/rateLimit.ts`
 - Ask/SSE logic
 
@@ -183,8 +182,8 @@ backend/
 |------|-----------------|
 | Hybrid search | `modules/search/hybrid.ts`, `rerank.ts` |
 | Ask pipeline | `modules/ask/rewrite.ts`, `answer.ts`, `pipeline.ts` |
-| Ask API | `routes/ask.ts` |
-| Digest | `modules/digest/summarizer.ts`, `emailTemplate.ts`, `sender.ts`, `routes/digest.ts` |
+| Ask API | `modules/ask/askRouter.ts` |
+| Digest | `modules/digest/summarizer.ts`, `emailTemplate.ts`, `sender.ts`, `modules/digest/digestRouter.ts` |
 | Rate limiting & quota | `middleware/rateLimit.ts`, quota logic in ask routes |
 | Worker (query side) | `jobs/digestDelivery.ts`, `embeddingRetry.ts` (if not owned by A) |
 
@@ -220,7 +219,7 @@ backend/
 - [ ] `summarizer.ts`: query last 24h chunks, Gemini summary (skip if zero chunks)
 - [ ] `emailTemplate.ts`: simple HTML email
 - [ ] `sender.ts`: Resend/SendGrid + `digest_deliveries` log
-- [ ] `routes/digest.ts`: `GET/PATCH /api/v1/digest/settings` (admin/owner only)
+- [ ] `modules/digest/digestRouter.ts`: `GET/PATCH /api/v1/digest/settings` (admin/owner only)
 
 #### Stage 16 (partial) — Worker: query jobs
 - [ ] `digestDelivery.ts` — hourly, match org timezone + delivery_hour
@@ -369,13 +368,13 @@ feat/shared-auth-middleware   ← Phase 0 (either)
 
 | Shared — coordinate before merging | Track A | Track B |
 |-----------------------------------|---------|---------|
-| `index.ts` | | |
+| `app.ts`, `index.ts` | | |
 | `config/env.ts` | | |
 | `db/repositories/*` | writes: `documents`, `chunks`, `integrations`, `oauth_states`, `sync_jobs` | writes: `queries`, `query_sources`, `digest_*`, `usage_counters` |
 | | `modules/integrations/**` | `modules/search/**` |
 | | `modules/ingest/**` | `modules/ask/**` |
-| | `routes/integrations.ts` | `routes/ask.ts` |
-| | `routes/webhooks.ts` | `routes/digest.ts` |
+| | `modules/integrations/integrationsRouter.ts` | `modules/ask/askRouter.ts` |
+| | | `modules/digest/digestRouter.ts` |
 | | `jobs/integrationSync.ts`, `tokenRefresh.ts`, … | `jobs/digestDelivery.ts` |
 
 ### Merge order

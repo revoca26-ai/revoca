@@ -207,3 +207,17 @@ As defense-in-depth (and to make a future move to multiple workers safe), each s
 **Decision:** On a verified JWT whose user/org isn't found locally, **provision the record just-in-time** from the JWT claims (and a Clerk API lookup if needed) inside a transaction, then proceed. Webhooks remain the path for *updates* and *deletes* and reconcile any drift.
 
 **Consequences:** Signup → first query works regardless of webhook timing. Provisioning is idempotent (upsert on `clerk_user_id` / `clerk_org_id`).
+
+---
+
+## ADR-016: Feature-Modular Directory Structure and App/Entrypoint Separation
+
+**Context:** The codebase needs to scale maintainably as new features are added. A global `routes/` directory splits HTTP handlers from the services and models they consume, making it harder to develop and refactor features self-contained. Additionally, keeping Express app configuration and socket listeners coupled in a single file makes integration testing difficult (causing port-conflict errors).
+
+**Decision:**
+1. Package routers directly inside their respective feature modules under `backend/modules/` (e.g., `modules/ask/askRouter.ts` instead of `routes/ask.ts`). The Express routes are mounted modularly.
+2. Separate Express initialization from the server startup:
+   - `backend/app.ts` configures standard Express middlewares, mounts all module routers, and exports `app` without starting a server listener.
+   - `backend/index.ts` handles env validations, connects to the database pool, and starts the server via `app.listen()`.
+
+**Consequences:** High cohesion inside each feature module (DDD pattern). Feature additions or deletions are self-contained. Port-isolated integration tests can be run safely against the exported `app` object using Supertest.

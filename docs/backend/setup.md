@@ -49,25 +49,29 @@ npm run dev                    # starts backend + frontend concurrently
 
 ```
 backend/
-├── index.ts                   # Express app entry, middleware, route mounting
+├── index.ts                   # Entrypoint (validates env, starts DB, calls app.listen)
+├── app.ts                     # Express app setup (cors, middleware, route mounting)
 ├── tsconfig.json
 ├── config/                    # env validation, constants
-├── middleware/
+├── middleware/                # Global middlewares
 │   ├── auth.ts                # Clerk JWT verification
 │   ├── rateLimit.ts
 │   └── errorHandler.ts
-├── routes/
-│   ├── auth.ts
-│   ├── integrations.ts
-│   ├── ask.ts
-│   └── digest.ts
-├── modules/
-│   ├── auth/
+├── modules/                   # Self-contained domain feature modules
+│   ├── auth/                  # Clerk identity, webhook, /me routes
+│   │   ├── authRouter.ts
+│   │   └── authService.ts
 │   ├── ingest/
 │   ├── search/
-│   ├── ask/
-│   ├── digest/
-│   └── integrations/
+│   ├── ask/                   # Query rewrite, answers, and routes
+│   │   ├── askRouter.ts
+│   │   ├── askService.ts
+│   │   └── ...
+│   ├── digest/                # Summarization, settings, and routes
+│   │   ├── digestRouter.ts
+│   │   └── ...
+│   └── integrations/          # OAuth connect, sync, and routes
+│       ├── integrationsRouter.ts
 │       ├── slack.ts
 │       ├── gmail.ts
 │       └── gdrive.ts

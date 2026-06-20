@@ -8,7 +8,7 @@ Clerk-based authentication. The backend never stores passwords — it verifies C
 |-----------|------|
 | Clerk (hosted) | Sign-up, sign-in, session management, org creation |
 | `middleware/auth.ts` | Verify JWT on every protected route |
-| `routes/auth.ts` | Webhook handler + `/me` endpoint |
+| `modules/auth/authRouter.ts` | Webhook handler + `/me` endpoint |
 | `modules/auth/` | User/org sync, token encryption utilities |
 
 ## JWT verification
@@ -73,9 +73,9 @@ modules/auth/
 ├── clerkVerify.ts         JWKS fetch + JWT validation
 ├── syncUser.ts            Webhook event handlers
 ├── crypto.ts              AES-256-GCM encrypt/decrypt
-└── roles.ts               Role-based access helpers
+├── roles.ts               Role-based access helpers
+└── authRouter.ts          webhook + GET /me
 middleware/auth.ts          requireAuth, requireRole('admin')
-routes/auth.ts              webhook + GET /me
 ```
 
 ## Endpoints

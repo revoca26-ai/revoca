@@ -135,7 +135,7 @@ Add webhook in Clerk dashboard:
 
 | Task | Start here |
 |------|-----------|
-| Add an API endpoint | [contract.md](../api/contract.md) → implement in `backend/routes/` |
+| Add an API endpoint | [contract.md](../api/contract.md) → implement in `backend/modules/<module_name>/<module_name>Router.ts` |
 | Fix a search issue | [search.md](../backend/modules/search.md) |
 | Add a UI page | [pages.md](../frontend/pages.md) |
 | Debug OAuth | [integrations/slack.md](../backend/modules/integrations/slack.md) or gmail/gdrive |
