@@ -370,7 +370,7 @@ feat/shared-auth-middleware   ← Phase 0 (either)
 |-----------------------------------|---------|---------|
 | `app.ts`, `index.ts` | | |
 | `config/env.ts` | | |
-| `db/repositories/*` | writes: `documents`, `chunks`, `integrations`, `oauth_states`, `sync_jobs` | writes: `queries`, `query_sources`, `digest_*`, `usage_counters` |
+| `modules/**/<name>Repository.ts` | writes: `documents`, `chunks`, `integrations`, `oauth_states`, `sync_jobs` | writes: `queries`, `query_sources`, `digest_*`, `usage_counters` |
 | | `modules/integrations/**` | `modules/search/**` |
 | | `modules/ingest/**` | `modules/ask/**` |
 | | `modules/integrations/integrationsRouter.ts` | `modules/ask/askRouter.ts` |

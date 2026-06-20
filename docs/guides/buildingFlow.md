@@ -117,20 +117,21 @@ A repository is just a module that holds all the SQL for one table. Instead of w
 
 ### What to build
 
-- [ ] Create `backend/db/repositories/organizations.ts`:
-  - `create(data)` → INSERT and return the new org
-  - `findById(orgId)` → SELECT by id
-  - `findByClerkId(clerkOrgId)` → SELECT by `clerk_org_id`
-  - `update(orgId, data)` → UPDATE name, timezone, etc.
-- [ ] Create `backend/db/repositories/users.ts`:
-  - `create(orgId, data)` → INSERT with org_id
-  - `findById(orgId, userId)` → SELECT with `WHERE org_id = $1 AND id = $2`
-  - `findByClerkId(clerkUserId)` → SELECT by `clerk_user_id`
-- [ ] Create `backend/db/repositories/integrations.ts`:
-  - `create(orgId, data)` → INSERT
-  - `findAllByOrg(orgId)` → SELECT all integrations for an org
-  - `findByProvider(orgId, provider)` → SELECT specific provider
-  - `updateStatus(orgId, integrationId, status)` → UPDATE status
+- [ ] Co-locate your repository functions within modular feature folders under `backend/modules/`:
+  - Create `backend/modules/org/orgRepository.ts`:
+    - `create(data)` → INSERT and return the new org
+    - `findById(orgId)` → SELECT by id
+    - `findByClerkId(clerkOrgId)` → SELECT by `clerk_org_id`
+    - `update(orgId, data)` → UPDATE name, timezone, etc.
+  - Create `backend/modules/user/userRepository.ts`:
+    - `create(orgId, data)` → INSERT with org_id
+    - `findById(orgId, userId)` → SELECT with `WHERE org_id = $1 AND id = $2`
+    - `findByClerkId(clerkUserId)` → SELECT by `clerk_user_id`
+  - Create `backend/modules/integrations/integrationsRepository.ts`:
+    - `create(orgId, data)` → INSERT
+    - `findAllByOrg(orgId)` → SELECT all integrations for an org
+    - `findByProvider(orgId, provider)` → SELECT specific provider
+    - `updateStatus(orgId, integrationId, status)` → UPDATE status
 - [ ] **Critical rule:** every function that touches a tenant-scoped table takes `orgId` as the first parameter and uses `WHERE org_id = $1`. No exceptions. This is how you prevent org A from ever seeing org B's data.
 - [ ] Create a quick `GET /api/v1/integrations` route that returns `integrations.findAllByOrg(orgId)` — use a hardcoded org ID for now (real auth comes next stage). Wire it up in `index.ts`.
 
@@ -220,8 +221,12 @@ Now that auth works, you need the rest of the tables before building features. Y
   - `009_create_usage_counters.sql` — `usage_counters` table for monthly quotas
   - `010_create_indexes.sql` — all remaining indexes (see [database.md](backend/database.md))
 - [ ] Run `npm run migrate` — all tables should be created
-- [ ] Create repositories for the new tables:
-  - `chunks.ts`, `documents.ts`, `queries.ts`, `querySources.ts`, `syncJobs.ts`, `digestSettings.ts`, `oauthStates.ts`, `usageCounters.ts`
+- [ ] Create repositories for the new tables inside their respective feature modules:
+  - `backend/modules/ingest/chunksRepository.ts` & `documentsRepository.ts`
+  - `backend/modules/ask/queriesRepository.ts` & `querySourcesRepository.ts`
+  - `backend/modules/integrations/syncJobsRepository.ts` & `oauthStatesRepository.ts`
+  - `backend/modules/digest/digestSettingsRepository.ts`
+  - `backend/modules/usage/usageCountersRepository.ts`
 - [ ] Create a custom `AppError` class that carries `code`, `statusCode`, `message`, and `details`
 - [ ] Update `errorHandler.ts` to catch `AppError` instances and return the right status code + envelope
 - [ ] Create `backend/middleware/requireRole.ts` — a middleware factory: `requireRole('admin', 'owner')` returns a middleware that checks `req.auth.role` and returns `403 FORBIDDEN` if the user doesn't have the right role

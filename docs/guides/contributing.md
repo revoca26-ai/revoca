@@ -67,7 +67,7 @@ PR template:
 
 - ES modules (`import`/`export`)
 - Async/await over raw promises
-- All DB queries through repository functions in `db/repositories/`
+- All DB queries through repository functions co-located in their respective modular feature folder under `modules/<feature>/` (e.g. `modules/auth/authRepository.ts`)
 - Every repository function takes `orgId` as first parameter
 - Env vars accessed only through `config/env.ts` — never `process.env` in modules
 - Errors thrown as typed error classes mapped to API error codes in `errorHandler.ts`
