@@ -719,11 +719,11 @@ This is the final stage. Build the remaining pages, wire up the Slack Events web
   - Responsive layout (works on mobile)
   - Clean typography and spacing
 - [ ] **Deploy:**
-  - **AWS Amplify:** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL`
+  - **Vercel (MVP):** deploy frontend with `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_URL` pointing to your AWS Application Load Balancer
   - **AWS ECS Fargate:** create backend service (`ROLE=api` tasks behind ALB) + worker service (`ROLE=worker` single task)
   - **AWS RDS PostgreSQL:** production database (or Neon)
   - **AWS ElastiCache for Redis:** rate limiting cache (or Upstash)
-  - Set up custom domains via Route 53
+  - Set up custom domains via Route 53 (and point frontend domain to Vercel)
   - Update OAuth redirect URIs for production
   - Run the post-deploy checklist from [deployment.md](deployment.md)
 - [ ] Set up uptime monitoring on `/health`

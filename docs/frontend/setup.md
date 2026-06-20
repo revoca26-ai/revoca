@@ -1,6 +1,6 @@
 # Frontend Setup
 
-React 19 + Vite SPA. Deployed to AWS Amplify.
+React 19 + Vite SPA. Deployed to Vercel for MVP, migrating to AWS Amplify post-launch.
 
 ## Prerequisites
 
@@ -79,11 +79,11 @@ npm run preview      # preview production build locally
 3. Add `http://localhost:5173` to allowed origins.
 4. Copy publishable key to `VITE_CLERK_PUBLISHABLE_KEY`.
 
-## Production env vars (AWS Amplify)
+## Production env vars (Vercel / AWS Amplify)
 
 | Variable | Value |
 |----------|-------|
 | `VITE_CLERK_PUBLISHABLE_KEY` | `pk_live_...` |
 | `VITE_API_URL` | `https://api.revoca.app` |
 
-See [deployment.md](../guides/deployment.md) for AWS Amplify configuration.
+See [deployment.md](../guides/deployment.md) for configuration details.

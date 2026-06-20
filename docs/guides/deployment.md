@@ -1,10 +1,13 @@
 # Deployment Guide
 
-Revoca is deployed 100% on **Amazon Web Services (AWS)** using modern, scalable, and secure cloud services:
-* **Frontend:** AWS Amplify Hosting (Git-integrated static site hosting)
-* **Backend API & Ingestion Worker:** AWS ECS Fargate (serverless container orchestration)
-* **Database:** AWS RDS PostgreSQL (with pgvector support)
-* **Cache:** AWS ElastiCache for Redis (for distributed rate-limiting)
+Revoca uses a hybrid deployment model for the MVP launch, prioritizing setup speed for the frontend and robustness for the backend:
+* **Frontend (MVP):** Deployed to **Vercel** (Vite static SPA).
+* **Frontend (Post-MVP Target):** Migrated to **AWS Amplify Hosting**.
+* **Backend API & Ingestion Worker:** Deployed to **AWS ECS Fargate** (serverless container orchestration).
+* **Database:** **AWS RDS PostgreSQL** (with pgvector support).
+* **Cache:** **AWS ElastiCache for Redis** (for distributed rate-limiting).
+
+---
 
 ## Deployment Architecture Diagram
 
@@ -16,10 +19,10 @@ Revoca is deployed 100% on **Amazon Web Services (AWS)** using modern, scalable,
             ┌────────────────┴────────────────┐
             ▼                                 ▼
    ┌──────────────────┐              ┌──────────────────┐
-   │ AWS Amplify      │              │ AWS ALB          │ (Application Load Balancer)
-   │ (React Frontend) │              └────────┬─────────┘
-   └──────────────────┘                       │
-                                    ┌─────────┴─────────┐
+   │ Vercel (MVP)     │              │ AWS ALB          │ (Application Load Balancer)
+   │ AWS Amplify      │              └────────┬─────────┘
+   │ (Post-MVP React) │                       │
+   └──────────────────┘             ┌─────────┴─────────┘
                                     ▼                   ▼
                           ┌──────────────────┐ ┌──────────────────┐
                           │ ECS Fargate API  │ │ ECS Fargate      │
@@ -39,6 +42,7 @@ Revoca is deployed 100% on **Amazon Web Services (AWS)** using modern, scalable,
 ## Prerequisites
 
 - AWS account with billing enabled and sufficient permissions (Admin/PowerUser).
+- Vercel account linked to your GitHub repository.
 - GitHub repository linked to your AWS account.
 - Production Clerk instance configured.
 - Production Google Cloud & Slack OAuth apps.
@@ -144,14 +148,32 @@ We deploy the Task Definition as two separate services in our cluster:
 
 ---
 
-## 4. Frontend — AWS Amplify Hosting
+## 4. Frontend (MVP) — Vercel
+
+1. Log in to your **Vercel dashboard** and click **Add New** → **Project**.
+2. Select the `revoca` Git repository.
+3. Configure the Project Settings:
+   - Framework Preset: **Vite**
+   - Root Directory: `frontend`
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+4. Set the **Environment Variables**:
+   - `VITE_CLERK_PUBLISHABLE_KEY` = `pk_live_...`
+   - `VITE_API_URL` = `https://api.revoca.app` (your AWS Application Load Balancer domain)
+5. Click **Deploy**.
+6. **Custom Domain:** Go to **Project Settings** → **Domains** → add `app.revoca.app` (or your chosen subdomain). Configure the DNS CNAME record in your domain provider or Route 53 to point to Vercel's target.
+
+---
+
+## 5. Post-MVP Frontend Migration — AWS Amplify
+
+When you are ready to consolidate the frontend onto AWS:
 
 1. Open the **AWS Amplify console** and click **Create new app** → **Host web app**.
-2. Select **GitHub** and authorize access. Choose the `revoca` monorepo and your deployment branch (e.g. `main`).
+2. Select **GitHub** and authorize access. Choose the `revoca` monorepo and your branch.
 3. Configure the App Build Settings:
    - Root directory: `frontend`
-   - Framework: React (Vite)
-   - Amplify build command settings (`amplify.yml`):
+   - Build settings:
      ```yaml
      version: 1
      frontend:
@@ -170,23 +192,18 @@ We deploy the Task Definition as two separate services in our cluster:
          paths:
            - node_modules/**/*
      ```
-4. Set **Environment variables**:
-   - `VITE_CLERK_PUBLISHABLE_KEY` = `pk_live_...`
-   - `VITE_API_URL` = `https://api.revoca.app`
-5. Click **Save and deploy**.
-6. **Custom Domain:** Go to **Amplify** → **Domain management** → **Add domain** (e.g., `app.revoca.app`). Amplify will provision the SSL certificate and configure Route 53 rules.
+4. Set the same **Environment variables** as Vercel.
+5. Deploy and transfer the custom domain `app.revoca.app` from Vercel to Amplify.
 
 ---
 
-## 5. Domain Routing (AWS Route 53)
+## 6. Domain Routing (AWS Route 53)
 
-Configure Route 53 record sets:
-- Create an **A Record (Alias)** pointing `api.revoca.app` to the Application Load Balancer (ALB).
-- Create a **CNAME / Alias Record** pointing `app.revoca.app` to the AWS Amplify deployment address (Amplify handles this automatically if you add the domain via Amplify settings).
-- Update OAuth Redirect URIs in:
-  - Google Cloud Console: `https://api.revoca.app/api/v1/integrations/google/callback`
-  - Slack App Settings: `https://api.revoca.app/api/v1/integrations/slack/callback`
-  - Clerk Dashboard: Allowed origin `https://app.revoca.app`
+Configure Route 53 record sets to orchestrate the hybrid routing:
+- **API Traffic:** Create an **A Record (Alias)** pointing `api.revoca.app` to the Application Load Balancer (ALB).
+- **Frontend Traffic (MVP):** Create a **CNAME Record** pointing `app.revoca.app` to Vercel (`cname.vercel-dns.com`).
+- **Frontend Traffic (Post-MVP):** Change `app.revoca.app` to point to the AWS Amplify deployment address.
+- Update OAuth Redirect URIs in your Google, Slack, and Clerk consoles to match these domains.
 
 ---
 
@@ -205,7 +222,7 @@ Configure Route 53 record sets:
 
 ## Rollback
 
-* **Frontend (Amplify):** Under Amplify App console → **Deployments** → Select previous deployment → **Rollback**.
+* **Frontend (Vercel):** Go to Vercel Deployments → Select previous deployment → **Promote to Production**.
 * **Backend API & Worker (ECS):** Tag the previous stable Docker image as `latest` in ECR, push it, and force a new deployment on the services:
   ```bash
   aws ecs update-service --cluster revoca-prod-cluster --service revoca-api-service --force-new-deployment
@@ -217,9 +234,5 @@ Configure Route 53 record sets:
 ## Monitoring & Logging
 
 * **Application logs:** Export ECS Fargate standard output/error to **Amazon CloudWatch logs** under the log group `/ecs/revoca-backend`.
-* **Database performance:** Monitor RDS CPU, memory, and connections on the RDS Monitoring tab.
-* **Alerting:** Configure CloudWatch alarms to trigger SNS alerts (to email/Slack) if:
-  - The API service ALB returns high rates of `5XX` responses.
-  - The API health check endpoint fails three consecutive times.
-  - CPU usage on the RDS or ECS tasks exceeds 85%.
-* **Amplify Analytics:** Track frontend load speeds and client-side error metrics.
+* **Database performance:** Monitor RDS CPU, memory, and connections.
+* **Alerting:** Configure CloudWatch alarms to trigger SNS alerts (to email/Slack) if the ALB returns high rates of `5XX` or if health checks fail.

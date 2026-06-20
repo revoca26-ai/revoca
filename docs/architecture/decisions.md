@@ -123,7 +123,7 @@ As defense-in-depth (and to make a future move to multiple workers safe), each s
 
 **Context:** Frontend and backend deploy separately but share env conventions, docs, and — critically — the API contract. Both are now TypeScript, so the original "no shared types in Phase 1" stance leaves money on the table: the contract can drift silently between server and client.
 
-**Decision:** Root `package.json` orchestrates both via `concurrently`; separate deploy targets (AWS Amplify / AWS ECS Fargate). Add a `packages/shared` workspace exporting **Zod schemas** for every request/response body. The backend validates inputs with these schemas at the edge; the frontend imports the inferred types for its API client. The contract docs remain human-readable, but the Zod schemas are the executable source of truth, and an OpenAPI document is generated from them (`zod-to-openapi`).
+**Decision:** Root `package.json` orchestrates both via `concurrently`; separate deploy targets (Vercel / AWS ECS Fargate). Add a `packages/shared` workspace exporting **Zod schemas** for every request/response body. The backend validates inputs with these schemas at the edge; the frontend imports the inferred types for its API client. The contract docs remain human-readable, but the Zod schemas are the executable source of truth, and an OpenAPI document is generated from them (`zod-to-openapi`).
 
 **Consequences:** Request validation, response typing, and the published contract all derive from one definition. A breaking field change fails the build instead of reaching production.
 

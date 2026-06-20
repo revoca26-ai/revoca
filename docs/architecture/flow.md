@@ -18,7 +18,7 @@ Legend:
 ## 1. The big picture (everything at once)
 
 ```
-                                   BROWSER (AWS Amplify SPA)
+                                   BROWSER (Vercel SPA - MVP)
         ┌──────────────────────────────────────────────────────────────────┐
         │  React 19 + Vite                                                   │
         │  Clerk SDK  ·  useApi()  ·  useAsk()  ·  useIntegrations()         │

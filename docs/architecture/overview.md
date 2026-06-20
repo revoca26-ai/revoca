@@ -9,7 +9,7 @@ Revoca is a multi-tenant SaaS that ingests business content from third-party int
 ```
 ┌─────────────┐   HTTPS + SSE   ┌──────────────────┐      ┌──────────────────┐
 │  React SPA  │ ───────────────▶│  Express API     │      │  Worker          │
-│  (Amplify)  │ ◀───────────────│ (ECS Fargate, N) │      │ (ECS Fargate, 1) │
+│(Vercel MVP) │ ◀───────────────│ (ECS Fargate, N) │      │ (ECS Fargate, 1) │
 └─────────────┘   Clerk JWT     └────────┬─────────┘      │  cron + ingest   │
                                          │                └────────┬─────────┘
                                          │   shared VPC            │
@@ -72,7 +72,7 @@ Every table carries an `org_id`. All queries include `WHERE org_id = $1`. Row-le
 
 | Service | Host | Notes |
 |---------|------|-------|
-| Frontend | AWS Amplify Hosting | Static React SPA, connected to GitHub for auto-deploys |
+| Frontend | Vercel (MVP) / AWS Amplify (Post-MVP) | Vercel for fast setup in MVP; migrate to Amplify for post-launch AWS consolidation |
 | Backend API | AWS ECS Fargate | Stateless web process (`ROLE=api`); scaled behind ALB; runs no cron |
 | Worker | AWS ECS Fargate | Single task instance (`ROLE=worker`); owns cron + ingestion; advisory-locked jobs |
 | Database | AWS RDS PostgreSQL | pgvector enabled; private subnet; pooled connection for ECS tasks |
@@ -82,7 +82,7 @@ Scheduled jobs live in the Worker, and each one takes a PostgreSQL advisory lock
 
 ## Phase boundaries
 
-- **Phase 1 (MVP):** Google Drive, Gmail, Slack + email digest + web UI. Uses OpenAI for embeddings, Gemini 1.5 Flash for query rewriting and answer generation, and AWS for deployment.
+- **Phase 1 (MVP):** Google Drive, Gmail, Slack + email digest + web UI. Uses OpenAI for embeddings, Gemini 1.5 Flash for query rewriting and answer generation, Vercel for frontend hosting, and AWS for backend hosting.
 - **Phase 2:** Move query rewriting and answer generation to Anthropic Claude (Haiku & Sonnet). Add WhatsApp Business, Zoom/Meet transcripts, GitHub, Notion, CSV/file upload.
 - **Phase 3:** Team analytics, admin console, SSO, usage-based billing, WhatsApp digest delivery.
 

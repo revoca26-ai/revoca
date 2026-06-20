@@ -67,7 +67,7 @@ Full setup: [docs/guides/onboarding.md](docs/guides/onboarding.md)
 | Rerank | Cohere `rerank-english-v3.0` |
 | LLM | Google Gemini (1.5 Flash rewrite, 1.5 Flash answer, streamed) |
 | Jobs | node-cron in the worker (advisory-locked) |
-| Deploy | AWS (Amplify for frontend, ECS Fargate for API + worker) |
+| Deploy | Vercel (Frontend MVP) / AWS Amplify (Post-MVP), AWS ECS Fargate (API + worker) |
 
 ## License
 
