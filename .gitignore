@@ -8,3 +8,7 @@ dist
 !.env.example
 backend/.env
 frontend/.env
+
+# Local development instructions
+backend/instructions.md
+
