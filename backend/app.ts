@@ -1,13 +1,17 @@
 import express, { Application, Request, Response } from 'express'
 import cors from 'cors'
 import { query } from './db/pool.js'
-
+import { clerkMiddleware } from '@clerk/express'
+import authRouter from './modules/auth/authRouter.js'
 // declare app
 const app: Application = express()
 
 // use middleware
-app.use(cors())
+// auth router must be placed before the clerk middleware since the webhook does not require authentication
+app.use('/api/v1/auth', authRouter)
+app.use(clerkMiddleware())
 app.use(express.json())
+app.use(cors())
 
 // main welcome route
 app.get('/', (_req: Request, res: Response): Response => {
