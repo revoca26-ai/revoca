@@ -3,6 +3,7 @@ import cors from 'cors'
 import { query } from './db/pool.js'
 import { clerkMiddleware } from '@clerk/express'
 import authRouter from './modules/auth/authRouter.js'
+import orgRouter from './modules/org/orgRouter.js'
 // declare app
 const app: Application = express()
 
@@ -12,6 +13,7 @@ app.use('/api/v1/auth', authRouter)
 app.use(clerkMiddleware())
 app.use(express.json())
 app.use(cors())
+app.use('/api/v1/org', orgRouter)
 
 // main welcome route
 app.get('/', (_req: Request, res: Response): Response => {

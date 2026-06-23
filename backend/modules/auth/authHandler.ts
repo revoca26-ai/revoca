@@ -3,9 +3,12 @@ import orgRepository from '../org/orgRepository.js'
 import userRepository from '../user/userRepository.js'
 
 export async function handleOrganizationCreated(event: any) {
+    // extract the organization type from the event data
+    const orgType = event.data.public_metadata?.org_type ?? 'team'
     const org = await orgRepository.create({
         clerk_org_id: event.data.id,
-        name: event.data.name
+        name: event.data.name,
+        org_type: orgType
     })
     console.log(`Organization created: ${org.id}`)
 }

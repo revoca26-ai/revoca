@@ -9,11 +9,11 @@ import { Organization, UpdateOrganization, CreateOrganizationInput } from '../..
  */
 async function create(data: CreateOrganizationInput): Promise<Organization> {
     const queryString = `
-        INSERT INTO organizations (clerk_org_id, name, plan, timezone)
-        VALUES ($1, $2, COALESCE($3, 'trial'), COALESCE($4, 'UTC'))
+        INSERT INTO organizations (clerk_org_id, name, plan, timezone, org_type)
+        VALUES ($1, $2, COALESCE($3, 'trial'), COALESCE($4, 'UTC'), COALESCE($5, 'team'))
         RETURNING *
     `
-    const values = [data.clerk_org_id, data.name, data.plan, data.timezone]
+    const values = [data.clerk_org_id, data.name, data.plan, data.timezone, data.org_type]
     const result = await query<Organization>(queryString, values)
     return result.rows[0]
 }

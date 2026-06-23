@@ -5,6 +5,7 @@ export interface Organization {
     name: string, // name of the organization
     plan: string, // trial, starter, pro
     timezone: string, // iana timezone for digest delivery
+    org_type: 'personal' | 'team' // type of the organization
     created_at: Date, // timestamptz are dates in the TS
     updated_at: Date // timestamptz are dates in the TS
 }
@@ -22,5 +23,6 @@ export interface CreateOrganizationInput {
     name: string, // name of the organization
     plan?: string, // trial, starter, pro
     timezone?: string // iana timezone for digest delivery
+    org_type?: 'personal' | 'team' // type of the organization
 }
 
