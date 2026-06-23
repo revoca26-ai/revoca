@@ -37,10 +37,13 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
             return res.status(400).json({ error: 'Unable to retrieve user email' })
         }
 
+        // get the user role from the clerk user
+        const role = clerkUser.publicMetadata.role ?? 'member';
+
         user = await userRepository.create(org.id, {
             clerk_user_id: clerkUserId,
             email: email,
-            role: 'member'
+            role: role as string
         })
     }
 
