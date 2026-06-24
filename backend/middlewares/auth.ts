@@ -1,7 +1,6 @@
 import { getAuth } from '@clerk/express'
 import { clerkClient } from '@clerk/express'
 import { NextFunction, Request, Response } from 'express'
-import { User } from '../types/users.js'
 import userRepository from '../modules/user/userRepository.js'
 import orgRepository from '../modules/org/orgRepository.js'
 
