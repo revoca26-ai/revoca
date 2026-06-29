@@ -22,4 +22,11 @@ type OAuthState = {
     expires_at: Date;
     created_at: Date;
 }
-export type { NewOauthState, ConsumedOauthState, OAuthState };
+
+type TokenSet = {
+    access_token: string;
+    refresh_token: string | null;
+    expires_in: Date | null;
+}
+
+export type { NewOauthState, ConsumedOauthState, OAuthState, TokenSet };

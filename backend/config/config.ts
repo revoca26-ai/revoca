@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // automatic checking if the environment variables are defined and throwing error for that specific variable
-const requiredEnvVars: string[] = ['PORT', 'DATABASE_URL', 'NODE_ENV', 'CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'CLERK_WEBHOOK_SIGNING_SECRET', 'ENCRYPTION_KEY']
+const requiredEnvVars: string[] = ['PORT', 'DATABASE_URL', 'NODE_ENV', 'CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'CLERK_WEBHOOK_SIGNING_SECRET', 'ENCRYPTION_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_SIGNING_SECRET', 'SLACK_REDIRECT_URI']
 
 requiredEnvVars.forEach(envVar => {
     if (!process.env[envVar]) {
@@ -21,6 +21,13 @@ interface Config {
     CLERK_SECRET_KEY: string
     CLERK_WEBHOOK_SIGNING_SECRET: string
     ENCRYPTION_KEY: string
+    GOOGLE_CLIENT_ID: string
+    GOOGLE_CLIENT_SECRET: string
+    GOOGLE_REDIRECT_URI: string
+    SLACK_CLIENT_ID: string
+    SLACK_CLIENT_SECRET: string
+    SLACK_SIGNING_SECRET: string
+    SLACK_REDIRECT_URI: string
 }
 
 // creating the config object
@@ -31,7 +38,14 @@ const config: Config = {
     CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY!,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY!,
     CLERK_WEBHOOK_SIGNING_SECRET: process.env.CLERK_WEBHOOK_SIGNING_SECRET!,
-    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
+    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI!,
+    SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID!,
+    SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET!,
+    SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET!,
+    SLACK_REDIRECT_URI: process.env.SLACK_REDIRECT_URI!
 }
 
 // exporting the config object
