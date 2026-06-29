@@ -7,13 +7,13 @@ const algorithm = 'aes-256-gcm' // AES-256-GCM is a symmetric encryption algorit
 export function encryptOAuthToken(token: string): string {
     // check for the length of the encryption key
     if (encryptionKey.length !== 64) {
-        throw new Error('Encryption key must be 64 bytes')
+        throw new Error('Encryption key must be 64 characters long')
     }
     // create a random initialization vector 12 bytes
     const iv = crypto.randomBytes(12)
-    // convert the encryption key to a buffe
+    // convert the encryption key to a binary
     const keyBuffer = Buffer.from(encryptionKey, 'hex')
-    // create the ciper object
+    // create the cipher object
     const cipher = crypto.createCipheriv(algorithm, keyBuffer, iv)
     // encrypt the token
     let encrypted = cipher.update(token, 'utf8', 'hex')
