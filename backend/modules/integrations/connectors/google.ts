@@ -3,14 +3,14 @@ import config from "../../../config/config.js";
 import { TokenSet } from "../../../types/oAuth.js";
 
 // the URLs for the Google OAuth 2.0 flow
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 // the required scopes for the Google OAuth 2.0 flow
 const REQUIRED_SCOPES = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/drive',
-];
+]
 
 export function getGoogleAuthUrl(state: string): string {
     // build the parameters for the OAuth 2.0 authorization URL for Google

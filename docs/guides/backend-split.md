@@ -14,7 +14,7 @@ Revoca has two backend pipelines that meet at the **`chunks` table**:
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  TRACK A — Data In                                                      │
 │                                                                         │
-│  Slack / Gmail / GDrive  →  OAuth  →  fetch  →  normalize  →  chunk   │
+│  Slack / Gmail / GDrive  →  OAuth  →  fetch  →  normalize  →  chunk     │
 │       →  embed  →  persist chunks in PostgreSQL                         │
 └───────────────────────────────────┬─────────────────────────────────────┘
                                     │
@@ -23,7 +23,7 @@ Revoca has two backend pipelines that meet at the **`chunks` table**:
 ┌───────────────────────────────────▼─────────────────────────────────────┐
 │  TRACK B — Intelligence Out                                             │
 │                                                                         │
-│  user question  →  rewrite  →  hybrid search  →  rerank  →  answer   │
+│  user question  →  rewrite  →  hybrid search  →  rerank  →  answer      │
 │       →  SSE stream  |  digest email                                    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -106,7 +106,7 @@ backend/
 |------|-----------------|
 | Token security | `modules/integrations/encryption.ts`, `oauthState.ts` |
 | OAuth connectors | `modules/integrations/connectors/google.ts`, `slack.ts` |
-| Integration routes | `modules/integrations/integrationsRouter.ts` |
+| Integration routes | `modules/integrations/integrationsRouter.ts` | -- done start from Ingest pipeline
 | Ingest pipeline | `modules/ingest/chunker.ts`, `embedder.ts`, `dedup.ts`, `pipeline.ts` |
 | Sync jobs | `jobs/integrationSync.ts`, `tokenRefresh.ts`, `oauthStateCleanup.ts`, `purgeDeleted.ts`, `syncJobCleanup.ts` |
 | Slack real-time | `modules/integrations/integrationsRouter.ts` (Slack Events webhook) |
