@@ -5,7 +5,7 @@ import { TokenSet } from "../../../types/oAuth.js"
 const GITHUB_AUTH_URL = 'https://github.com/login/oauth/authorize'
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
-const REQUIRED_SCOPES = [
+export const GITHUB_REQUIRED_SCOPES = [
     'repo',
     'read:user',
     'user:email',
@@ -21,7 +21,7 @@ export function getGitHubAuthUrl(state: string): string {
     const params = new URLSearchParams({
         client_id: config.GITHUB_CLIENT_ID,
         redirect_uri: config.GITHUB_REDIRECT_URI,
-        scope: REQUIRED_SCOPES.join(' '), // Github requires scopes as a space-separated string - GITHUB API docs
+        scope: GITHUB_REQUIRED_SCOPES.join(' '), // Github requires scopes as a space-separated string - GITHUB API docs
         state,
     })
 
@@ -71,7 +71,7 @@ export async function exchangeGitHubCode(code: string): Promise<TokenSet> {
 
     // check the granted scopes
     const grantedScopes = data.scope.split(' ') // Github returns scopes as a space-separated string - GITHUB API docs
-    for (const scope of REQUIRED_SCOPES) {
+    for (const scope of GITHUB_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'GITHUB_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)
         }

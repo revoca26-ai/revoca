@@ -6,7 +6,7 @@ import { TokenSet } from "../../../types/oAuth.js"
 const SLACK_AUTH_URL = 'https://slack.com/oauth/v2/authorize'
 const SLACK_TOKEN_URL = 'https://slack.com/api/oauth.v2.access'
 
-const REQUIRED_SCOPES = [
+export const SLACK_REQUIRED_SCOPES = [
     'channels:read',
     'chat:write',
     'files:read',
@@ -23,7 +23,7 @@ export function getSlackAuthUrl(state: string): string {
     const params = new URLSearchParams({
         client_id: config.SLACK_CLIENT_ID,
         redirect_uri: config.SLACK_REDIRECT_URI,
-        scope: REQUIRED_SCOPES.join(','),
+        scope: SLACK_REQUIRED_SCOPES.join(','),
         state,
     })
     // return the complete authorization URL
@@ -68,7 +68,7 @@ export async function exchangeSlackCode(code: string): Promise<TokenSet> {
 
     // check the granted scopes
     const grantedScopes = data.scope.split(',')
-    for (const scope of REQUIRED_SCOPES) {
+    for (const scope of SLACK_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'SLACK_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)
         }

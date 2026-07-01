@@ -11,6 +11,7 @@ type ConsumedOauthState = {
     org_id: string;
     user_id: string;
     provider: string;
+    redirect_path: string;
 }
 
 // the OAuth state object

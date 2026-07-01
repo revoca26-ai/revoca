@@ -7,7 +7,7 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 // the required scopes for the Google OAuth 2.0 flow
-const REQUIRED_SCOPES = [
+export const GOOGLE_REQUIRED_SCOPES = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/drive',
 ]
@@ -66,7 +66,7 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
 
     // check the granted scopes
     const grantedScopes = data.scope.split(' ')
-    for (const scope of REQUIRED_SCOPES) {
+    for (const scope of GOOGLE_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'GOOGLE_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)
         }

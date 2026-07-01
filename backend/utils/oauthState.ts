@@ -41,6 +41,6 @@ export async function consumeOauthState(state: string): Promise<ConsumedOauthSta
     if (result.rows.length === 0) {
         throw new AppError(400, 'OAUTH_STATE_INVALID', 'Invalid or expired OAuth state');
     }
-    const { org_id, user_id, provider } = result.rows[0];
-    return { org_id, user_id, provider };
+    const { org_id, user_id, provider, redirect_path } = result.rows[0];
+    return { org_id, user_id, provider, redirect_path };
 }

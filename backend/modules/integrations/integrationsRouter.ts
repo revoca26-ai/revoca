@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { getIntegrations, connectIntegration, googleCallback, slackCallback, githubCallback, deleteIntegration } from './integrationsController.js'
 
 // create instance of Router
 const integrationsRouter = Router()
