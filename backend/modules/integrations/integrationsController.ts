@@ -69,7 +69,7 @@ export async function googleCallback(req: Request, res: Response, _next: NextFun
     }
 }
 
-export async function slackCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function slackCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
         const {code, state} = req.query as {code: string, state: string}
         const {org_id, redirect_path} = await consumeOauthState(state)
@@ -83,7 +83,7 @@ export async function slackCallback(req: Request, res: Response, next: NextFunct
     }
 }
 
-export async function githubCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function githubCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
         const {code, state} = req.query as {code: string, state: string}
         const {org_id, redirect_path} = await consumeOauthState(state)
