@@ -43,8 +43,9 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
                 role: role,
             })
         }
-        // attach the user and clerk user id to the request
+        // attach the user, org id, and clerk user id to the request
         req.user = user
+        req.org_id = user.org_id
         req.clerkUserId = clerkUserId
         next()
     } catch (error) {
