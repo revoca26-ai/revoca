@@ -25,7 +25,7 @@ const deleteIntegrationSchema = z.object({
     }),
 })
 
-export function validateDeleteIntegration(req: Request, res: Response, next: NextFunction) {
+export function validateDeleteIntegration(req: Request, _res: Response, next: NextFunction) {
     const result = deleteIntegrationSchema.safeParse(req)
     if (!result.success) {
         throw new AppError(400, 'INVALID_REQUEST', result.error.issues[0].message)
