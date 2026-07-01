@@ -70,7 +70,7 @@ export async function exchangeGitHubCode(code: string): Promise<TokenSet> {
     }
 
     // check the granted scopes
-    const grantedScopes = data.scope.split(' ') // Github returns scopes as a space-separated string - GITHUB API docs
+    const grantedScopes = (data.scope || '').split(',') // Github returns scopes as a comma-separated string
     for (const scope of GITHUB_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'GITHUB_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)

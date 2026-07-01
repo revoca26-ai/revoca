@@ -65,7 +65,7 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
     }
 
     // check the granted scopes
-    const grantedScopes = data.scope.split(' ')
+    const grantedScopes = (data.scope || '').split(' ')
     for (const scope of GOOGLE_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'GOOGLE_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)

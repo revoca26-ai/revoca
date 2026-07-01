@@ -67,7 +67,7 @@ export async function exchangeSlackCode(code: string): Promise<TokenSet> {
     }
 
     // check the granted scopes
-    const grantedScopes = data.scope.split(',')
+    const grantedScopes = (data.scope || '').split(',')
     for (const scope of SLACK_REQUIRED_SCOPES) {
         if (!grantedScopes.includes(scope)) {
             throw new AppError(400, 'SLACK_TOKEN_EXCHANGE_FAILED', 'Missing required scope: ' + scope)

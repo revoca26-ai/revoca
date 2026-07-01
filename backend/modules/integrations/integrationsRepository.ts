@@ -40,8 +40,8 @@ export async function findIntegrationByProvider(orgId: string, provider: string)
  * @returns void
  */
 export async function createPendingIntegration(orgId: string, provider: string): Promise<void> {
-    // create a new pending integration
-    const queryText = `INSERT INTO integrations (org_id, provider) VALUES ($1, $2)`
+    // create a new pending integration or update existing disconnected integration
+    const queryText = `INSERT INTO integrations (org_id, provider) VALUES ($1, $2) ON CONFLICT (org_id, provider) DO UPDATE SET status = 'pending', updated_at = NOW()`
     const queryValues = [orgId, provider]
     // sending the query to the database
     await query(queryText, queryValues)

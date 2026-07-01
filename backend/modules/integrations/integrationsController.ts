@@ -37,7 +37,7 @@ export async function connectIntegration(req: Request, res: Response, next: Next
         // get the provider from the request
         const provider = req.params.provider as string
         // get the redirect path from the request
-        const redirectPath = req.query.redirect_path as string
+        const redirectPath = req.body.redirectPath as string
         // create a new integration with a pending default status
         const authorizeUrl = await createIntegration(orgId, userId, provider, redirectPath)
         // return the authorize url
@@ -51,7 +51,11 @@ export async function connectIntegration(req: Request, res: Response, next: Next
 export async function googleCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
         // extract the code and state from the request
-        const {code, state} = req.query as {code: string, state: string}
+        const {code, state, error} = req.query as {code?: string, state?: string, error?: string}
+        if (error || !code || !state) {
+            res.redirect(`${config.FRONTEND_URL}/integrations?error=${error || 'google_failed'}`)
+            return
+        }
         // consume the oauth state
         const {org_id, redirect_path} = await consumeOauthState(state)
         // exchange the code for tokens
@@ -71,7 +75,11 @@ export async function googleCallback(req: Request, res: Response, _next: NextFun
 
 export async function slackCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
-        const {code, state} = req.query as {code: string, state: string}
+        const {code, state, error} = req.query as {code?: string, state?: string, error?: string}
+        if (error || !code || !state) {
+            res.redirect(`${config.FRONTEND_URL}/integrations?error=${error || 'slack_failed'}`)
+            return
+        }
         const {org_id, redirect_path} = await consumeOauthState(state)
         const tokenSet = await exchangeSlackCode(code)
         const accessTokenEncrypted = encryptOAuthToken(tokenSet.access_token)
@@ -85,7 +93,11 @@ export async function slackCallback(req: Request, res: Response, _next: NextFunc
 
 export async function githubCallback(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
-        const {code, state} = req.query as {code: string, state: string}
+        const {code, state, error} = req.query as {code?: string, state?: string, error?: string}
+        if (error || !code || !state) {
+            res.redirect(`${config.FRONTEND_URL}/integrations?error=${error || 'github_failed'}`)
+            return
+        }
         const {org_id, redirect_path} = await consumeOauthState(state)
         const tokenSet = await exchangeGitHubCode(code)
         const accessTokenEncrypted = encryptOAuthToken(tokenSet.access_token)
