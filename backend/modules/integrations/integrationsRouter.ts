@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { getIntegrations, connectIntegration, googleCallback, slackCallback, githubCallback, deleteIntegration } from './integrationsController.js'
 import requireAuth from '../../middlewares/auth.js'
-
+import { validateConnectIntegration } from './IntegrationsValidation.js'
 // create instance of Router
 const integrationsRouter = Router()
 
 // ROUTES FOR INTEGRATIONS
 integrationsRouter.get('/', requireAuth, getIntegrations) 
-integrationsRouter.post('/:provider/connect', requireAuth, connectIntegration)
+integrationsRouter.post('/:provider/connect', requireAuth, validateConnectIntegration, connectIntegration)
 // no auth required for callbacks
 integrationsRouter.get('/google/callback', googleCallback)
 integrationsRouter.get('/slack/callback', slackCallback)
