@@ -5,7 +5,8 @@
     "dev": "tsx watch index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate": "tsx db/migrate.ts"
+    "migrate": "tsx db/migrate.ts",
+    "seed:chunks": "tsx scripts/seed-chunks.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.30",
@@ -16,9 +17,10 @@
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
-    "openai": "^4.77.0",
+    "openai": "^4.104.0",
     "pg": "^8.13.1",
-    "svix": "^1.96.0"
+    "svix": "^1.96.0",
+    "tiktoken": "^1.0.22"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -27,7 +29,7 @@
     "@types/node": "^22.15.21",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.11.14",
-    "tsx": "^4.19.4",
+    "tsx": "^4.22.4",
     "typescript": "^5.8.3"
   }
 }

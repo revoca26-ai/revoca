@@ -12,3 +12,4 @@ frontend/.env
 # Local development instructions
 backend/instructions.md
 
+.env
