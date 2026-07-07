@@ -1,6 +1,9 @@
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
-import { TokenSet } from "../../../types/oAuth.js"
+import { RefreshTokenSet, TokenSet } from "../../../types/oAuth.js"
+import { RawDocument } from "../../../types/integrations.js"
+import { Integration } from "../../../types/integrations.js"
+import { decryptOAuthToken } from "../../../utils/encryption.js"
 
 // the URLs for the Google OAuth 2.0 flow
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
@@ -78,4 +81,49 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
         refresh_token: data.refresh_token,
         expires_at: new Date(Date.now() + data.expires_in * 1000),
     } 
+}
+
+/**
+ * Refresh the Google token
+ * @param integration - The integration to refresh the token for
+ * @returns void
+ */
+export async function refreshGoogleToken(integration: Integration): Promise<RefreshTokenSet> {
+    // get the access token from the integration
+    const accessToken = integration.access_token_enc ? decryptOAuthToken(integration.access_token_enc) : null;
+    // check if the access token exists
+    if (!accessToken) {
+        throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'No access token found')
+    }
+    // send the access token to the Google API to refresh the token
+    const response = await fetch(GOOGLE_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            client_id: config.GOOGLE_CLIENT_ID,
+            client_secret: config.GOOGLE_CLIENT_SECRET,
+            grant_type: 'refresh_token',
+            refresh_token: accessToken,
+        }),
+    })
+
+    if (!response.ok) {
+        throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'Failed to refresh token')
+    }
+
+    const data: any = await response.json()
+
+    // validate the response
+    if (!data.access_token && !data.expires_in) {
+        throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'Failed to refresh token')
+    }
+
+    // return the token set
+    return {
+        access_token: data.access_token,
+        expires_at: new Date(Date.now() + data.expires_in * 1000),
+        refresh_token: null,
+    }
 }

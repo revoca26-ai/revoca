@@ -1,3 +1,4 @@
+import { Integration, RawDocument } from './integrations.js';
 // creat a type to create a new oauth state
 type NewOauthState = {
     org_id: string;
@@ -33,11 +34,19 @@ type TokenSet = {
     expires_at: Date | null;
 }
 
+type RefreshTokenSet = {
+    access_token: string;
+    expires_at: Date;
+    refresh_token: string | null;
+}
+
 // interface for Connector
 interface Connector {
     getAuthorizeUrl(state: string): string;
     exchangeCode(code: string): Promise<TokenSet>;
+    syncData(integration: Integration): Promise<RawDocument[]>;
+    refreshToken(integration: Integration): Promise<RefreshTokenSet>;
 }
 
 // exporting 
-export type { NewOauthState, ConsumedOauthState, OAuthState, TokenSet, Connector };
+export type { NewOauthState, ConsumedOauthState, OAuthState, TokenSet, RefreshTokenSet, Connector };

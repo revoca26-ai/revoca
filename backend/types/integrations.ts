@@ -24,4 +24,15 @@ type IntegrationList = {
     created_at: Date,
 }
 
-export { Integration, IntegrationList }
+type RawDocument = {
+    id: string, 
+    integrationId: string,
+    orgId: string,
+    text: string,
+    author: string | null,
+    timestamp: Date,
+    permalink: string | null,
+    sourceType: string,
+}
+
+export { Integration, IntegrationList, RawDocument }

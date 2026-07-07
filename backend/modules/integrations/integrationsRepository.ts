@@ -76,3 +76,35 @@ export async function disconnectIntegration(orgId: string, provider: string): Pr
     // sending the query to the database
     await query(queryText, queryValues)
 }
+
+/**
+ * Get all active integrations
+ * @returns The active integrations
+ */
+export async function getAllActiveIntegrations(): Promise<Integration[]> {
+    // get all active integrations
+    const queryText = `SELECT * FROM integrations WHERE status = 'active' AND (token_expires_at IS NULL OR token_expires_at > NOW()) `
+    // sending the query to the database
+    const result = await query<Integration>(queryText)
+    // return the integrations
+    return result.rows
+}
+
+export async function getAllExpiredIntegrations(): Promise<Integration[]> {
+    // Only get integrations that ACTUALLY expire (token_expires_at IS NOT NULL) 
+    // and are expiring in the next 5 minutes
+    const queryText = `SELECT * FROM integrations WHERE status = 'active' AND token_expires_at IS NOT NULL AND token_expires_at < NOW() + INTERVAL '5 minutes'`
+    // sending the query to the database
+    const result = await query<Integration>(queryText)
+    // return the integrations
+    return result.rows
+}
+
+// function to update the integration with a new access token and refresh token and token expires at
+export async function updateIntegration(orgId: string, provider: string, accessTokenEncrypted: string, refreshTokenEncrypted: string | null, tokenExpiresAt: Date | null): Promise<void> {
+    // update the integration
+    const queryText = `UPDATE integrations SET access_token_enc = $1, refresh_token_enc = COALESCE($2, refresh_token_enc), token_expires_at = $3, updated_at = NOW() WHERE org_id = $4 AND provider = $5`
+    const queryValues = [accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, orgId, provider]
+    // sending the query to the database
+    await query(queryText, queryValues)
+}

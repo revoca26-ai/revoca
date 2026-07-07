@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // automatic checking if the environment variables are defined and throwing error for that specific variable
-const requiredEnvVars: string[] = ['PORT', 'DATABASE_URL', 'NODE_ENV', 'CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'CLERK_WEBHOOK_SIGNING_SECRET', 'ENCRYPTION_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_SIGNING_SECRET', 'SLACK_REDIRECT_URI', 'GITHUB_CLIENT_ID', 'GITHUB_REDIRECT_URI', 'GITHUB_CLIENT_SECRET', 'FRONTEND_URL']
+const requiredEnvVars: string[] = ['PORT', 'DATABASE_URL', 'NODE_ENV', 'CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'CLERK_WEBHOOK_SIGNING_SECRET', 'ENCRYPTION_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_SIGNING_SECRET', 'SLACK_REDIRECT_URI', 'GITHUB_CLIENT_ID', 'GITHUB_REDIRECT_URI', 'GITHUB_CLIENT_SECRET', 'FRONTEND_URL', 'OPENAI_API_KEY']
 
 requiredEnvVars.forEach(envVar => {
     if (!process.env[envVar]) {
@@ -32,6 +32,7 @@ interface Config {
     GITHUB_REDIRECT_URI: string
     GITHUB_CLIENT_SECRET: string
     FRONTEND_URL: string
+    OPENAI_API_KEY: string
 }
 
 // creating the config object
@@ -53,7 +54,8 @@ const config: Config = {
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID!,
     GITHUB_REDIRECT_URI: process.env.GITHUB_REDIRECT_URI!,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET!,
-    FRONTEND_URL: process.env.FRONTEND_URL!
+    FRONTEND_URL: process.env.FRONTEND_URL!,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY!
 }
 
 // exporting the config object
