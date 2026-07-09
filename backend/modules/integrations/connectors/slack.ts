@@ -1,6 +1,6 @@
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
-import { TokenSet } from "../../../types/oAuth.js"
+import { TokenSet, RefreshTokenSet } from "../../../types/oAuth.js"
 import { Integration, RawDocument } from "../../../types/integrations.js"
 import { decryptOAuthToken } from "../../../utils/encryption.js"
 
@@ -144,6 +144,7 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
             timestamp: new Date(parseFloat(message.ts) * 1000), // convert Slack's Unix seconds to JS Date
             permalink: message.permalink || null,
             sourceType: `slack_channel:#${channel.name}`, // channel name is used as the source type
+            title: `#${channel.name}`, // channel name is used as the title
         })))
     }
     // return the raw documents
@@ -155,7 +156,7 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
  * @param integration - The integration to refresh the token for
  * @returns void
  */
-export async function refreshSlackToken(_integration: Integration): Promise<void> {
+export async function refreshSlackToken(_integration: Integration): Promise<RefreshTokenSet | null> {
     // slack tokens do not expire so we can skip this for now
-    return
+    return null;
 }

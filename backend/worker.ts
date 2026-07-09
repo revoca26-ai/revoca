@@ -3,8 +3,8 @@ import { getAllActiveIntegrations, getAllExpiredIntegrations } from './modules/i
 import { getConnector } from './modules/integrations/connectors/index.js'
 import { ingestDocument } from './modules/ingest/pipeline.js'
 import { updateIntegration } from './modules/integrations/integrationsRepository.js'
-import { RefreshTokenSet } from './types/oAuth.js'
 import { encryptOAuthToken } from './utils/encryption.js'
+import { deleteChunksDeletedMoreThan7DaysAgo } from './modules/ingest/documentRepository.js'
 
 // this function will tell the worker to do the job every 15 minutes 
 cron.schedule('*/15 * * * *', async () => {
@@ -44,7 +44,11 @@ cron.schedule('*/15 * * * *', async () => {
         for (const integration of integrations) {
             const connector = getConnector(integration.provider)
             // refresh the token
-            const refreshTokenSet: RefreshTokenSet = await connector.refreshToken(integration)
+            const refreshTokenSet = await connector.refreshToken(integration)
+            // if the refresh token set is null, that means it does not need to be refrseshed so we can continue
+            if (!refreshTokenSet) {
+                continue
+            }
             // encrypt the refresh token
             const refreshTokenEncrypted = refreshTokenSet.refresh_token ? encryptOAuthToken(refreshTokenSet.refresh_token) : null
             // encrypt the access token
@@ -57,4 +61,17 @@ cron.schedule('*/15 * * * *', async () => {
     }
     // final console log
     console.log("Expired oAuth token job completed successfully")
+})
+
+// this worker runs daily and will delete all the chunks which where deleted more than 7 days ago
+cron.schedule('0 0 * * *', async () => {
+    console.log("Starting the delete chunks job.....")
+    try {
+        // get all the chunks which were deleted more than 7 days ago
+        await deleteChunksDeletedMoreThan7DaysAgo()
+    } catch (error) {
+        console.error(`error in the delete chunks job: ${error}`)
+    }
+    // final console log
+    console.log("Delete chunks job completed successfully")
 })

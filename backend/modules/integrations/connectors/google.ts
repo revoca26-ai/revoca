@@ -1,8 +1,7 @@
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
 import { RefreshTokenSet, TokenSet } from "../../../types/oAuth.js"
-import { RawDocument } from "../../../types/integrations.js"
-import { Integration } from "../../../types/integrations.js"
+import { Integration, RawDocument } from "../../../types/integrations.js"
 import { decryptOAuthToken } from "../../../utils/encryption.js"
 
 // the URLs for the Google OAuth 2.0 flow
@@ -127,3 +126,83 @@ export async function refreshGoogleToken(integration: Integration): Promise<Refr
         refresh_token: null,
     }
 }
+
+/**
+ * Sync the Google data for the integration
+ * @param integration - The integration to sync the data for
+ * @returns The raw documents
+ * @throws AppError if the data is not ok
+ */
+export async function syncGoogleData(integration: Integration): Promise<RawDocument[]> {
+    // get the access token from the integration
+    const accessToken = integration.access_token_enc ? decryptOAuthToken(integration.access_token_enc) : null;
+    
+    if (!accessToken) {
+        throw new AppError(500, 'GOOGLE_SYNC_FAILED', 'No access token found');
+    }
+
+    // Calling the Gmail API to get the list of messages for the authenticated user ('me')
+    const url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50';
+    
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+        },
+    });
+
+    const data: any = await response.json();
+
+    if (!response.ok) {
+        throw new AppError(500, 'GOOGLE_SYNC_FAILED', data.error?.message ?? 'Failed to fetch Gmail messages');
+    }
+
+    const messagesList = data.messages || [];
+    
+    // NOTE: The Gmail API list endpoint ONLY returns `{ id, threadId }`. 
+    // It does not return the actual text of the email!
+    console.log(`Fetched ${messagesList.length} message IDs from Gmail.`);
+
+    const rawDocuments: RawDocument[] = [];
+    
+    // Loop through each message ID and fetch the actual content
+    for (const msg of messagesList) {
+        const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`;
+        const msgResponse = await fetch(msgUrl, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Accept': 'application/json'
+            },
+        });
+
+        if (!msgResponse.ok) {
+            console.error(`Failed to fetch message ${msg.id}`);
+            continue; // Skip this message if it fails
+        }
+
+        const msgData: any = await msgResponse.json();
+
+        // Gmail hides metadata (Subject, From, Date) inside an array of headers
+        const headers = msgData.payload?.headers || [];
+        const subjectHeader = headers.find((h: any) => h.name === 'Subject');
+        const fromHeader = headers.find((h: any) => h.name === 'From');
+        
+        // Gmail provides a handy 'snippet' (a preview of the body text)
+        const textContent = msgData.snippet || 'No content';
+
+        rawDocuments.push({
+            id: msgData.id,
+            integrationId: integration.id,
+            orgId: integration.org_id,
+            text: textContent,
+            author: fromHeader ? fromHeader.value : 'Unknown',
+            timestamp: new Date(parseInt(msgData.internalDate)), // internalDate is in ms
+            permalink: `https://mail.google.com/mail/u/0/#inbox/${msgData.id}`,
+            sourceType: 'gmail_thread',
+            title: subjectHeader ? subjectHeader.value : null
+        });
+    }
+
+    return rawDocuments;
+}
+

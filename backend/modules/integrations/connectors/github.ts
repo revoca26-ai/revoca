@@ -1,7 +1,8 @@
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
-import { TokenSet } from "../../../types/oAuth.js"
-
+import { TokenSet, RefreshTokenSet } from "../../../types/oAuth.js"
+import { Integration, RawDocument } from "../../../types/integrations.js"
+import { decryptOAuthToken } from "../../../utils/encryption.js"
 const GITHUB_AUTH_URL = 'https://github.com/login/oauth/authorize'
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 
@@ -83,4 +84,64 @@ export async function exchangeGitHubCode(code: string): Promise<TokenSet> {
         refresh_token: data.refresh_token ?? null,
         expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
     }
+}
+
+/**
+ * Sync the GitHub data for the integration
+ * @param integration - The integration to sync the data for
+ * @returns The raw documents
+ */
+export async function syncGithubData(integration: Integration): Promise<RawDocument[]> {
+    const accessToken = integration.access_token_enc ? decryptOAuthToken(integration.access_token_enc) : null;
+    
+    if (!accessToken) {
+        throw new AppError(500, 'GITHUB_SYNC_FAILED', 'No access token found');
+    }
+
+    // Fetch the 50 most recent issues the user is involved in across all their repos
+    const url = 'https://api.github.com/issues?filter=all&state=all&per_page=50';
+    
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Revoca-App' // GitHub requires a User-Agent header
+        },
+    });
+
+    const data: any = await response.json();
+
+    if (!response.ok) {
+        throw new AppError(500, 'GITHUB_SYNC_FAILED', data.message ?? 'Failed to fetch GitHub issues');
+    }
+
+    const issues = Array.isArray(data) ? data : [];
+    const rawDocuments: RawDocument[] = [];
+
+    // Map each GitHub issue/PR into our RawDocument format
+    for (const issue of issues) {
+        rawDocuments.push({
+            id: issue.id.toString(),
+            integrationId: integration.id,
+            orgId: integration.org_id,
+            text: `${issue.title}\n\n${issue.body || ''}`,
+            author: issue.user?.login || 'Unknown',
+            timestamp: new Date(issue.created_at),
+            permalink: issue.html_url,
+            sourceType: 'github_issue',
+            title: issue.title
+        });
+    }
+
+    return rawDocuments;
+}
+
+/**
+ * Refresh the GitHub token
+ * @param integration - The integration to refresh the token for
+ * @returns void
+ */
+export async function refreshGithubToken(_integration: Integration): Promise<RefreshTokenSet | null> {
+    // By default, GitHub OAuth tokens do NOT expire 
+    return null;
 }

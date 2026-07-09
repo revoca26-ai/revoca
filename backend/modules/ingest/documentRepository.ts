@@ -4,36 +4,47 @@ import crypto from 'crypto'
 
 export async function storeChunks(doc: RawDocument, chunks: string[], embeddings: number[][], embeddingStatus: boolean): Promise<void> {
     // extract the document properties
-    const { id, integrationId, orgId, text, author, timestamp, permalink, sourceType } = doc
+    const { id, integrationId, orgId, text, author, timestamp, permalink, sourceType, title } = doc
     // generate a content hash
     const contentHash = crypto.createHash('sha256').update(text).digest('hex')
     // check if the document already exists in the database
-    // check if the this org_id and integration_id and external_id already exists in the database
     const documentExistsQuery = `SELECT id, content_hash FROM documents WHERE org_id = $1 AND integration_id = $2 AND external_id = $3`
     const documentExistsValues = [orgId, integrationId, id]
     const documentExistsResult = await query(documentExistsQuery, documentExistsValues)
+    
     // if the document already exists compare the content hash
     if (documentExistsResult.rows.length > 0) {
         const documentContentHash = documentExistsResult.rows[0].content_hash
         if (documentContentHash === contentHash) {
-            return
+            return // Hash matches exactly, skip entirely!
+        } else {
+            // The document changed! Soft-delete the old chunks so we don't get duplicates.
+            const deleteChunksQuery = `UPDATE chunks SET deleted_at = NOW() WHERE document_id = $1`
+            const deleteChunksValues = [documentExistsResult.rows[0].id]
+            await query(deleteChunksQuery, deleteChunksValues)
         }
     }
-    let title = null
-    // if the source type is a slack channel, set the title to the channel name
-    if (sourceType.startsWith('slack_channel:')) {
-        title = sourceType.split('#')[1]
-    }
+
     // create a metadata object
     const metadata = {
         author: author || null,
         timestamp: timestamp.toISOString(),
     }
-    // convert the metadata object to a JSON string
     const metadataJson = JSON.stringify(metadata)
-    // Insert the doucment into the database
-    const documentInsertQuery = `INSERT INTO documents (org_id, integration_id, external_id, source_type, title, url, raw_content, metadata, content_hash)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+    
+    // UPSERT: Insert the document. If it already exists, update its content and hash!
+    const documentInsertQuery = `
+        INSERT INTO documents (org_id, integration_id, external_id, source_type, title, url, raw_content, metadata, content_hash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (org_id, integration_id, external_id) DO UPDATE SET 
+            title = EXCLUDED.title,
+            raw_content = EXCLUDED.raw_content,
+            content_hash = EXCLUDED.content_hash,
+            url = EXCLUDED.url,
+            metadata = EXCLUDED.metadata,
+            updated_at = NOW()
+        RETURNING id
+    `
     const documentInsertValues = [orgId, integrationId, id, sourceType, title, permalink || '', text, metadataJson, contentHash]
     const documentInsertResult = await query(documentInsertQuery, documentInsertValues)
     const documentId = documentInsertResult.rows[0].id
@@ -60,4 +71,12 @@ export async function storeChunks(doc: RawDocument, chunks: string[], embeddings
             await query(chunkInsertQuery, chunkInsertValues)
         }
     }
+}
+
+export async function deleteChunksDeletedMoreThan7DaysAgo(): Promise<void> {
+    // Delete chunks older than 7 days where deleted_at is not null
+    const deleteChunksQuery = `DELETE FROM chunks WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '7 days'`
+    await query(deleteChunksQuery)
+    // final console log
+    console.log("Chunks deleted more than 7 days ago")
 }
