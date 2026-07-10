@@ -1,6 +1,6 @@
-import { getGoogleAuthUrl, exchangeGoogleCode } from './google.js'
-import { getSlackAuthUrl, exchangeSlackCode } from './slack.js'
-import { getGitHubAuthUrl, exchangeGitHubCode } from './github.js'
+import { getGoogleAuthUrl, exchangeGoogleCode, syncGoogleData, refreshGoogleToken } from './google.js'
+import { getSlackAuthUrl, exchangeSlackCode, syncSlackData, refreshSlackToken } from './slack.js'
+import { getGitHubAuthUrl, exchangeGitHubCode, syncGithubData, refreshGithubToken } from './github.js'
 import { Connector } from '../../../types/oAuth.js'
 import { AppError } from '../../../types/AppError.js'
 
@@ -8,14 +8,20 @@ const connectors: Record<string, Connector> = {
     google: {
         getAuthorizeUrl: getGoogleAuthUrl,
         exchangeCode: exchangeGoogleCode,
+        syncData: syncGoogleData,
+        refreshToken: refreshGoogleToken,
     },
     slack: {
         getAuthorizeUrl: getSlackAuthUrl,
         exchangeCode: exchangeSlackCode,
+        syncData: syncSlackData,
+        refreshToken: refreshSlackToken,
     },
     github: {
         getAuthorizeUrl: getGitHubAuthUrl,
         exchangeCode: exchangeGitHubCode,
+        syncData: syncGithubData,
+        refreshToken: refreshGithubToken,
     },
 }
 

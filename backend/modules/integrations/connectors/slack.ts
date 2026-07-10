@@ -1,6 +1,8 @@
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
-import { TokenSet } from "../../../types/oAuth.js"
+import { TokenSet, RefreshTokenSet } from "../../../types/oAuth.js"
+import { Integration, RawDocument } from "../../../types/integrations.js"
+import { decryptOAuthToken } from "../../../utils/encryption.js"
 
 // the URLs for the Slack OAuth 2.0 flow
 const SLACK_AUTH_URL = 'https://slack.com/oauth/v2/authorize'
@@ -79,5 +81,87 @@ export async function exchangeSlackCode(code: string): Promise<TokenSet> {
         access_token: data.access_token,
         refresh_token: data.refresh_token ?? null,
         expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+        external_account_id: data.team?.id ?? null,
     } 
+}
+
+/**
+ * Sync the Slack data for the integration
+ * @param integration - The integration to sync the data for
+ * @returns The raw documents
+ * @throws AppError if the data is not ok
+ */
+export async function syncSlackData(integration: Integration): Promise<RawDocument[]> {
+    // get the access token from the integration
+    const accessToken = integration.access_token_enc ? decryptOAuthToken(integration.access_token_enc) : null;
+    // check if the access token exists
+    if (!accessToken) {
+        throw new AppError(500, 'SLACK_SYNC_FAILED', 'No access token found')
+    }
+    
+    // Slack requires a channel ID to fetch history. We append it as a URL parameter.
+    // Calling the Slack Web API to get all the avaiable channels for the bot
+    const channelsResponse = await fetch('https://slack.com/api/conversations.list', {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+    })
+    const channelsData: any = await channelsResponse.json()
+    // check if the channels data is ok
+    if (!channelsData.ok) {
+        throw new AppError(500, 'SLACK_SYNC_FAILED', channelsData.error ?? 'Failed to get channels from Slack')
+    }
+    // get the channels from the data
+    const channels = channelsData.channels || []
+    const rawDocuments: RawDocument[] = []
+    // loop through the channels and get the data for each channel
+    for (const channel of channels) {
+        // calling the Slack Web API to get the data for the channel
+        let url = `https://slack.com/api/conversations.history?channel=${channel.id}`;
+        if (integration.last_synced_at) {
+            const oldestUnix = Math.floor(integration.last_synced_at.getTime() / 1000);
+            url += `&oldest=${oldestUnix}`;
+        }
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+        })  
+        // get the data from the response 
+        const data: any = await response.json()
+        // check if the data is ok
+        if (!data.ok) {
+            throw new AppError(500, 'SLACK_SYNC_FAILED', data.error ?? 'Failed to get data from Slack')
+        }
+        // get the messages from the data
+        const messages = data.messages || []
+        
+        // map the messages to the raw documents
+        // ... is the spread operator prevents this from being a nested array
+        rawDocuments.push(...messages.map((message: any) => ({
+            id: message.ts, // Slack uses the 'ts' field as the unique message ID
+            integrationId: integration.id,
+            orgId: integration.org_id,
+            text: message.text || '', // to handle if the text is not present (undefined)
+            author: message.user,
+            timestamp: new Date(parseFloat(message.ts) * 1000), // convert Slack's Unix seconds to JS Date
+            permalink: message.permalink || null,
+            sourceType: `slack_channel:#${channel.name}`, // channel name is used as the source type
+            title: `#${channel.name}`, // channel name is used as the title
+        })))
+    }
+    // return the raw documents
+    return rawDocuments
+}
+
+/**
+ * Refresh the Slack token
+ * @param integration - The integration to refresh the token for
+ * @returns void
+ */
+export async function refreshSlackToken(_integration: Integration): Promise<RefreshTokenSet | null> {
+    // slack tokens do not expire so we can skip this for now
+    return null;
 }

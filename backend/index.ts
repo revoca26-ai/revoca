@@ -9,10 +9,21 @@ async function main(): Promise<void> {
     // query the database for the current time
     const result = await query<{ now: string }>('SELECT NOW()')
     console.log('Database connected successfully at', result.rows[0].now)
-    // start the server
-    app.listen(config.PORT, (): void => {
-      console.log(`🚀 Backend listening on http://localhost:${config.PORT}`)
-    })
+    // check if the role is worker import the worker.ts file and run the worker
+    if (config.ROLE === 'worker') {
+      import('./worker.js')
+      console.log('Worker started successfully')
+      return
+    } else if (config.ROLE === 'server') {
+      // start the server
+      app.listen(config.PORT, (): void => {
+        console.log(`🚀 Server listening on http://localhost:${config.PORT}`)
+      })
+    } else {
+      console.error('Invalid role, please set the ROLE environment variable to either worker or server')
+      process.exit(1)
+      return
+    }
     // close the server when the process is terminated
     process.on('SIGINT', async (): Promise<void> => {
       await pool.end()

@@ -5,6 +5,7 @@ import { clerkMiddleware } from '@clerk/express'
 import authRouter from './modules/auth/authRouter.js'
 import orgRouter from './modules/org/orgRouter.js'
 import integrationsRouter from './modules/integrations/integrationsRouter.js'
+import webhooksRouter from './modules/webhooks/webhooksRouter.js'
 // declare app
 const app: Application = express()
 
@@ -12,10 +13,16 @@ const app: Application = express()
 // auth router must be placed before the clerk middleware since the webhook does not require authentication
 app.use('/api/v1/auth', authRouter)
 app.use(clerkMiddleware())
-app.use(express.json())
+app.use(express.json({
+    verify: (req: Request, _res: Response, buf: Buffer) => {
+        // buf is the exact data straight from the client
+        req.rawBody = buf
+    }
+}))
 app.use(cors())
 app.use('/api/v1/org', orgRouter)
 app.use('/api/v1/integrations', integrationsRouter)
+app.use('/api/v1/webhooks', webhooksRouter)
 // main welcome route
 app.get('/', (_req: Request, res: Response): Response => {
     return res.status(200).json({
