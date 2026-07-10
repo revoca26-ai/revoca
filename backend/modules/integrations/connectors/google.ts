@@ -89,12 +89,12 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
  */
 export async function refreshGoogleToken(integration: Integration): Promise<RefreshTokenSet> {
     // get the access token from the integration
-    const accessToken = integration.access_token_enc ? decryptOAuthToken(integration.access_token_enc) : null;
+    const refreshToken = integration.refresh_token_enc ? decryptOAuthToken(integration.refresh_token_enc) : null;
     // check if the access token exists
-    if (!accessToken) {
-        throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'No access token found')
+    if (!refreshToken) {
+        throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'No refresh token found')
     }
-    // send the access token to the Google API to refresh the token
+    // send the refresh token to the Google API to refresh the token
     const response = await fetch(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: {
@@ -104,7 +104,7 @@ export async function refreshGoogleToken(integration: Integration): Promise<Refr
             client_id: config.GOOGLE_CLIENT_ID,
             client_secret: config.GOOGLE_CLIENT_SECRET,
             grant_type: 'refresh_token',
-            refresh_token: accessToken,
+            refresh_token: refreshToken,
         }),
     })
 
@@ -114,8 +114,8 @@ export async function refreshGoogleToken(integration: Integration): Promise<Refr
 
     const data: any = await response.json()
 
-    // validate the response
-    if (!data.access_token && !data.expires_in) {
+    // validate the response ensure that both the access token and expires in are present
+    if (!data.access_token || !data.expires_in) {
         throw new AppError(500, 'GOOGLE_TOKEN_REFRESH_FAILED', 'Failed to refresh token')
     }
 

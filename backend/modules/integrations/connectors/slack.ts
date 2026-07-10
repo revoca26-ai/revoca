@@ -81,6 +81,7 @@ export async function exchangeSlackCode(code: string): Promise<TokenSet> {
         access_token: data.access_token,
         refresh_token: data.refresh_token ?? null,
         expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+        external_account_id: data.team?.id ?? null,
     } 
 }
 
@@ -139,7 +140,7 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
             id: message.ts, // Slack uses the 'ts' field as the unique message ID
             integrationId: integration.id,
             orgId: integration.org_id,
-            text: message.text,
+            text: message.text || '', // to handle if the text is not present (undefined)
             author: message.user,
             timestamp: new Date(parseFloat(message.ts) * 1000), // convert Slack's Unix seconds to JS Date
             permalink: message.permalink || null,

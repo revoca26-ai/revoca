@@ -1,5 +1,5 @@
 import { Router } from 'express'
-
+import { slackWebhook } from './webhooksController.js'
 // create instance of Router
 const webhooksRouter = Router()
 

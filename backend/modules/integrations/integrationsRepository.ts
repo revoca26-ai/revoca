@@ -55,10 +55,10 @@ export async function createPendingIntegration(orgId: string, provider: string):
  * @param refreshTokenEncrypted - The encrypted refresh token
  * @returns void
  */
-export async function activateIntegration(orgId: string, provider: string, accessTokenEncrypted: string, refreshTokenEncrypted: string | null, tokenExpiresAt: Date | null, scopes: string[]): Promise<void> {
+export async function activateIntegration(orgId: string, provider: string, accessTokenEncrypted: string, refreshTokenEncrypted: string | null, tokenExpiresAt: Date | null, scopes: string[], externalAccountId: string | null): Promise<void> {
     // activate the integration
-    const queryText = `UPDATE integrations SET status = 'active', access_token_enc = $1, refresh_token_enc = $2, token_expires_at = $3, scopes = $4, updated_at = NOW() WHERE org_id = $5 AND provider = $6`
-    const queryValues = [accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, scopes, orgId, provider]
+    const queryText = `UPDATE integrations SET status = 'active', access_token_enc = $1, refresh_token_enc = $2, token_expires_at = $3, scopes = $4, external_account_id = $5, updated_at = NOW() WHERE org_id = $6 AND provider = $7`
+    const queryValues = [accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, scopes, externalAccountId, orgId, provider]
     // sending the query to the database
     await query(queryText, queryValues)
 }

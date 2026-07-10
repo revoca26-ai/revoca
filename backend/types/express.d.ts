@@ -5,7 +5,8 @@ declare global {
         interface Request {
             user?: User,
             org_id?: string,
-            clerkUserId?: string
+            clerkUserId?: string,
+            rawBody?: Buffer
         }
     }
 }

@@ -16,17 +16,23 @@ export function chunkDocument(doc: RawDocument): string[] {
     // Split the text into an array of words
     const words = doc.text.split(/\s+/);
     
-    // We will group the words into chunks of roughly 250 words
+    // We will group the words into chunks of roughly 250 words, with a 50 word overlap
     const CHUNK_SIZE = 250;
+    const OVERLAP = 50;
+    const STEP_SIZE = CHUNK_SIZE - OVERLAP;
     const chunks: string[] = [];
 
-    // Loop through the words array, jumping forward by CHUNK_SIZE each time
-    for (let i = 0; i < words.length; i += CHUNK_SIZE) {
+    // Loop through the words array, jumping forward by STEP_SIZE each time
+    for (let i = 0; i < words.length; i += STEP_SIZE) {
         // Slice out a piece of the words array, and join them back into a single string
         const chunkWords = words.slice(i, i + CHUNK_SIZE);
         const chunkText = chunkWords.join(' ');
-        // chunking 
         chunks.push(chunkText);
+        
+        // If this chunk reached the end of the document, break out of the loop
+        if (i + CHUNK_SIZE >= words.length) {
+            break;
+        }
     }
 
     return chunks;

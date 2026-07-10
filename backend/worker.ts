@@ -15,17 +15,21 @@ cron.schedule('*/15 * * * *', async () => {
         const integrations = await getAllActiveIntegrations()
         // loop through the integrations and sync the data
         for (const integration of integrations) {
-            // get the connector for the integration
-            const connector = getConnector(integration.provider)
-            // sync the data
-            const rawDocuments = await connector.syncData(integration)
-            // loop through the raw documents and ingest the data
-            for (const rawDocument of rawDocuments) {
-                // ingest the data
-                await ingestDocument(rawDocument)
+            try {
+                // get the connector for the integration
+                const connector = getConnector(integration.provider)
+                // sync the data
+                const rawDocuments = await connector.syncData(integration)
+                // loop through the raw documents and ingest the data
+                for (const rawDocument of rawDocuments) {
+                    // ingest the data
+                    await ingestDocument(rawDocument)
+                }
+                // final console log
+                console.log(`Ingested ${rawDocuments.length} documents for integration ${integration.id}`)
+            } catch (err) {
+                console.error(`Error syncing integration ${integration.id}: ${err}`);
             }
-            // final console log
-            console.log(`Ingested ${rawDocuments.length} documents for integration ${integration.id}`)
         }
     } catch (error) {
         console.error(`error in the sync 15 minute job: ${error}`)
@@ -42,19 +46,23 @@ cron.schedule('*/15 * * * *', async () => {
         const integrations = await getAllExpiredIntegrations()
         // loop through the integrations and disconnect the integration
         for (const integration of integrations) {
-            const connector = getConnector(integration.provider)
-            // refresh the token
-            const refreshTokenSet = await connector.refreshToken(integration)
-            // if the refresh token set is null, that means it does not need to be refrseshed so we can continue
-            if (!refreshTokenSet) {
-                continue
+            try {
+                const connector = getConnector(integration.provider)
+                // refresh the token
+                const refreshTokenSet = await connector.refreshToken(integration)
+                // if the refresh token set is null, that means it does not need to be refrseshed so we can continue
+                if (!refreshTokenSet) {
+                    continue
+                }
+                // encrypt the refresh token
+                const refreshTokenEncrypted = refreshTokenSet.refresh_token ? encryptOAuthToken(refreshTokenSet.refresh_token) : null
+                // encrypt the access token
+                const accessTokenEncrypted = encryptOAuthToken(refreshTokenSet.access_token)
+                // update the integration with the new access token and refresh token and token expires at
+                await updateIntegration(integration.org_id, integration.provider, accessTokenEncrypted, refreshTokenEncrypted, refreshTokenSet.expires_at)
+            } catch (err) {
+                console.error(`Error refreshing integration ${integration.id}: ${err}`);
             }
-            // encrypt the refresh token
-            const refreshTokenEncrypted = refreshTokenSet.refresh_token ? encryptOAuthToken(refreshTokenSet.refresh_token) : null
-            // encrypt the access token
-            const accessTokenEncrypted = encryptOAuthToken(refreshTokenSet.access_token)
-            // update the integration with the new access token and refresh token and token expires at
-            await updateIntegration(integration.org_id, integration.provider, accessTokenEncrypted, refreshTokenEncrypted, refreshTokenSet.expires_at)
         }
     } catch (error) {
         console.error(`error in the expired oAuth token job: ${error}`)
