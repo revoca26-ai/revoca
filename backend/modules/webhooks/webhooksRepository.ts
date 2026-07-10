@@ -8,7 +8,7 @@ export async function getIntegrationIdAndOrgIdByExternalAccountIdForSlack(extern
     const result = await query(queryString, values)
     // if the result is empty, throw an error
     if (result.rows.length === 0) {
-        throw new AppError(404, 'Slack Integration ID not found')
+        throw new AppError(404, 'INTEGRATION_NOT_FOUND', 'Slack integration not found')
     }
     // return the integration id
     return { integrationId: result.rows[0].id, orgId: result.rows[0].org_id }

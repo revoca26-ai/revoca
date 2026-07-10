@@ -1,41 +1,62 @@
 import cron from 'node-cron'
-import { getAllActiveIntegrations, getAllExpiredIntegrations } from './modules/integrations/integrationsRepository.js'
+import { getAllActiveIntegrations, getAllExpiredIntegrations, addSyncJob, completeSyncJob, failSyncJob, updateLastSyncedAt } from './modules/integrations/integrationsRepository.js'
 import { getConnector } from './modules/integrations/connectors/index.js'
 import { ingestDocument } from './modules/ingest/pipeline.js'
 import { updateIntegration } from './modules/integrations/integrationsRepository.js'
 import { encryptOAuthToken } from './utils/encryption.js'
 import { deleteChunksDeletedMoreThan7DaysAgo } from './modules/ingest/documentRepository.js'
+import { logger } from './utils/logger.js'
 
 // this function will tell the worker to do the job every 15 minutes 
 cron.schedule('*/15 * * * *', async () => {
-    // get all the integrations that are active and have a refresh token
-    console.log("Starting the sync 15 minute job.....")
+    logger.info({ job: 'sync-15m' }, "Starting the sync 15 minute job.....")
     try {
         // get all the active integrations
         const integrations = await getAllActiveIntegrations()
         // loop through the integrations and sync the data
         for (const integration of integrations) {
             try {
+                // add the sync_job table entry
+                let syncJobId = null;
+                try {
+                    // add the sync_job table entry
+                    syncJobId = await addSyncJob(integration.id, integration.org_id)
+                } catch (err) {
+                    // if we get postgres unique index violation error, that means the sync job already exists so we can continue
+                    if (err instanceof Error && 'code' in err && err.code === '23505') {
+                        logger.info({ integrationId: integration.id }, "Sync job already running, skipping")
+                        continue
+                    }
+                    // if we get any other error, we should throw it
+                    throw err
+                }
                 // get the connector for the integration
                 const connector = getConnector(integration.provider)
                 // sync the data
                 const rawDocuments = await connector.syncData(integration)
                 // loop through the raw documents and ingest the data
+                let ingestedDocuments = 0;
                 for (const rawDocument of rawDocuments) {
                     // ingest the data
                     await ingestDocument(rawDocument)
+                    ingestedDocuments++;
                 }
                 // final console log
-                console.log(`Ingested ${rawDocuments.length} documents for integration ${integration.id}`)
+                logger.info({ integrationId: integration.id, documents: ingestedDocuments }, "Successfully ingested documents")
+                // update the sync_job table entry
+                await completeSyncJob(syncJobId, rawDocuments.length, ingestedDocuments)
+                // update the integration to say we finished syncing
+                await updateLastSyncedAt(integration.id)
             } catch (err) {
-                console.error(`Error syncing integration ${integration.id}: ${err}`);
+                logger.error({ integrationId: integration.id, err }, "Error syncing integration");
+                // update the sync_job table entry
+                await failSyncJob(integration.id, String(err))
             }
         }
     } catch (error) {
-        console.error(`error in the sync 15 minute job: ${error}`)
+        logger.error({ err: error }, "Error in the sync 15 minute job")
     }
-    // final console log
-    console.log("Sync 15 minute job completed successfully")
+    logger.info({ job: 'sync-15m' }, "Sync 15 minute job completed successfully")
 })
 
 // make another worker to handle expired oAuth tokens

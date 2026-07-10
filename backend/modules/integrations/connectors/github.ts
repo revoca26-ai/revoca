@@ -99,7 +99,10 @@ export async function syncGithubData(integration: Integration): Promise<RawDocum
     }
 
     // Fetch the 50 most recent issues the user is involved in across all their repos
-    const url = 'https://api.github.com/issues?filter=all&state=all&per_page=50';
+    let url = 'https://api.github.com/issues?filter=all&state=all&per_page=50';
+    if (integration.last_synced_at) {
+        url += `&since=${integration.last_synced_at.toISOString()}`;
+    }
     
     const response = await fetch(url, {
         headers: {

@@ -118,7 +118,11 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
     // loop through the channels and get the data for each channel
     for (const channel of channels) {
         // calling the Slack Web API to get the data for the channel
-        const url = `https://slack.com/api/conversations.history?channel=${channel.id}`;
+        let url = `https://slack.com/api/conversations.history?channel=${channel.id}`;
+        if (integration.last_synced_at) {
+            const oldestUnix = Math.floor(integration.last_synced_at.getTime() / 1000);
+            url += `&oldest=${oldestUnix}`;
+        }
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,

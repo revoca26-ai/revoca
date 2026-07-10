@@ -83,7 +83,7 @@ export async function disconnectIntegration(orgId: string, provider: string): Pr
  */
 export async function getAllActiveIntegrations(): Promise<Integration[]> {
     // get all active integrations
-    const queryText = `SELECT * FROM integrations WHERE status = 'active' AND (token_expires_at IS NULL OR token_expires_at > NOW()) `
+    const queryText = `SELECT * FROM integrations WHERE status = 'active'`
     // sending the query to the database
     const result = await query<Integration>(queryText)
     // return the integrations
@@ -107,4 +107,38 @@ export async function updateIntegration(orgId: string, provider: string, accessT
     const queryValues = [accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, orgId, provider]
     // sending the query to the database
     await query(queryText, queryValues)
+}
+
+export async function addSyncJob(integrationId: string, orgId: string): Promise<string> {
+    // add the sync job
+    const insertJobQuery = `                                                           
+                INSERT INTO sync_jobs (org_id, integration_id, trigger, status, started_at)    
+                VALUES ($1, $2, 'cron', 'running', NOW())                                      
+                RETURNING id`;
+    const insertJobValues = [orgId, integrationId]
+    // sending the query to the database
+    const result = await query<{id: string}>(insertJobQuery, insertJobValues)
+    // return the sync job id
+    return result.rows[0].id
+}
+
+export async function completeSyncJob(syncJobId: string, totalDocuments: number, ingestedDocuments: number): Promise<void> {
+    // complete the sync job
+    const updateJobQuery = `UPDATE sync_jobs SET status = 'completed', finished_at = NOW(), items_fetched = $1, items_ingested = $2 WHERE id = $3`
+    const updateJobValues = [totalDocuments, ingestedDocuments, syncJobId]
+    // sending the query to the database
+    await query(updateJobQuery, updateJobValues)
+}
+
+export async function failSyncJob(integrationId: string, error: string): Promise<void> {
+    // fail the sync job
+    const updateJobQuery = `UPDATE sync_jobs SET status = 'failed', finished_at = NOW(), error_message = $1 WHERE integration_id = $2 AND status = 'running'`
+    const updateJobValues = [error, integrationId]
+    // sending the query to the database
+    await query(updateJobQuery, updateJobValues)
+}
+
+export async function updateLastSyncedAt(integrationId: string): Promise<void> {
+    const updateJobQuery = `UPDATE integrations SET last_synced_at = NOW() WHERE id = $1`
+    await query(updateJobQuery, [integrationId])
 }

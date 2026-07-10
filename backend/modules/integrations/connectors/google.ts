@@ -77,8 +77,9 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
     // return the token set
     return {
         access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: new Date(Date.now() + data.expires_in * 1000),
+        refresh_token: data.refresh_token ?? null,
+        expires_at: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+        scopes: grantedScopes,
     } 
 }
 
@@ -87,7 +88,7 @@ export async function exchangeGoogleCode(code: string): Promise<TokenSet> {
  * @param integration - The integration to refresh the token for
  * @returns void
  */
-export async function refreshGoogleToken(integration: Integration): Promise<RefreshTokenSet> {
+export async function refreshGoogleToken(integration: Integration): Promise<RefreshTokenSet | null> {
     // get the access token from the integration
     const refreshToken = integration.refresh_token_enc ? decryptOAuthToken(integration.refresh_token_enc) : null;
     // check if the access token exists
@@ -142,7 +143,11 @@ export async function syncGoogleData(integration: Integration): Promise<RawDocum
     }
 
     // Calling the Gmail API to get the list of messages for the authenticated user ('me')
-    const url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50';
+    let url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50';
+    if (integration.last_synced_at) {
+        const afterUnix = Math.floor(integration.last_synced_at.getTime() / 1000);
+        url += `&q=after:${afterUnix}`;
+    }
     
     const response = await fetch(url, {
         headers: {

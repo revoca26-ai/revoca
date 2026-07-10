@@ -34,6 +34,7 @@ type TokenSet = {
     expires_at: Date | null;
     // this is the external account id in the database for now it is only used for slack since it has a live webhook to identify org_id
     external_account_id?: string; 
+    scopes?: string[];
 }
 
 type RefreshTokenSet = {

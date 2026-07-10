@@ -33,7 +33,7 @@ type RawDocument = {
     timestamp: Date,
     permalink: string | null,
     sourceType: string,
-    title?: string,
+    title: string | null,
 }
 
 export { Integration, IntegrationList, RawDocument }

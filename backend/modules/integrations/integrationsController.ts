@@ -9,6 +9,7 @@ import { exchangeGitHubCode } from './connectors/github.js'
 import { GOOGLE_REQUIRED_SCOPES } from './connectors/google.js'
 import { GITHUB_REQUIRED_SCOPES } from './connectors/github.js'
 import { SLACK_REQUIRED_SCOPES } from './connectors/slack.js'
+import { getConnector } from './connectors/index.js'
 import config from '../../config/config.js'
 
 export async function getIntegrations(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -64,7 +65,7 @@ export async function googleCallback(req: Request, res: Response, _next: NextFun
         const accessTokenEncrypted = encryptOAuthToken(tokenSet.access_token)
         const refreshTokenEncrypted = tokenSet.refresh_token ? encryptOAuthToken(tokenSet.refresh_token) : null
         // activate the integration
-        await activateIntegration(org_id, 'google', accessTokenEncrypted, refreshTokenEncrypted, tokenSet.expires_at, GOOGLE_REQUIRED_SCOPES, tokenSet.external_account_id ?? null)
+        await activateIntegration(org_id, 'google', accessTokenEncrypted, refreshTokenEncrypted, tokenSet.expires_at, tokenSet.scopes || GOOGLE_REQUIRED_SCOPES, tokenSet.external_account_id ?? null)
         // redirect to the redirect path
         res.redirect(`${config.FRONTEND_URL}${redirect_path}?connected=google`)
     } catch (err) {
@@ -113,6 +114,10 @@ export async function deleteIntegration(req: Request, res: Response, next: NextF
     try {
         const orgId = req.org_id!
         const provider = req.params.provider as string
+        
+        // validate that the provider actually exists
+        getConnector(provider)
+        
         await disconnectIntegration(orgId, provider)
         res.status(202).json({ message: 'Integration disconnecting' })
     } catch (err) {

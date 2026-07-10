@@ -5,7 +5,7 @@ import config from "../../config/config.js";
 /**
  * 
  * @param doc 
- * @returns 250 chunk string Array
+ * @returns Array of chunk strings
  */
 export function chunkDocument(doc: RawDocument): string[] {
     // If there's no text, return an empty array

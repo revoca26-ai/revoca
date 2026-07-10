@@ -1,7 +1,7 @@
 import config from '../config/config.js'
 import crypto from 'crypto'
 
-const encryptionKey = config.ENCRYPTION_KEY // 64-byte hex string
+const encryptionKey = config.ENCRYPTION_KEY // 64-character hex string (32 bytes)
 const algorithm = 'aes-256-gcm' // AES-256-GCM is a symmetric encryption algorithm industry standard
 
 export function encryptOAuthToken(token: string): string {
@@ -27,7 +27,7 @@ export function encryptOAuthToken(token: string): string {
 export function decryptOAuthToken(encryptedToken: string): string {
     // check for the length of the encryption key
     if (encryptionKey.length !== 64) {
-        throw new Error('Encryption key must be 64 bytes')
+        throw new Error('Encryption key must be 64 characters long')
     }
     // split the encrypted token into parts
     const encryptionElements: string[] = encryptedToken.split(':')

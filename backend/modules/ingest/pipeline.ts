@@ -5,6 +5,9 @@ import { chunkDocument, embedChunks } from "./ingestionService.js"
 export async function ingestDocument(doc: RawDocument): Promise<void> {
     // chunk the document
     const chunks = chunkDocument(doc)
+    if (chunks.length === 0) {
+        return
+    }
     // try to embed the chunks
     try {
         const embeddings = await embedChunks(chunks)

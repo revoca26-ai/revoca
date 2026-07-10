@@ -61,21 +61,21 @@ export async function storeChunks(doc: RawDocument, chunks: string[], embeddings
         if (embeddingStatus) {
             // loop through the chunks and the embeddings and insert the chunks into the database
             for (let i = 0; i < chunks.length; i++) {
-                const tokenCount = Math.ceil(chunks[i].split(/\\s+/).length * 1.3);
+                const tokenCount = Math.ceil(chunks[i].split(/\s+/).length * 1.3);
                 const embeddingString = JSON.stringify(embeddings[i]); // pgvector expects a string like '[0.1, 0.2, ...]'
                 
                 const chunkInsertQuery = `INSERT INTO chunks (org_id, document_id, chunk_index, content, token_count, embedding, metadata, embedding_status)
                 VALUES ($1, $2, $3, $4, $5, $6::vector, $7, $8)`
-                const chunkInsertValues = [orgId, documentId, i, chunks[i], tokenCount, embeddingString, metadataJson, 'ok']
+                const chunkInsertValues = [orgId, documentId, i, chunks[i], tokenCount, embeddingString, metadataJson, 'completed']
                 await client.query(chunkInsertQuery, chunkInsertValues)
             }
         } else {
             // insert ALL chunks for embedding status pending (not just chunks[0])
             for (let i = 0; i < chunks.length; i++) {
-                const tokenCount = Math.ceil(chunks[i].split(/\\s+/).length * 1.3);
+                const tokenCount = Math.ceil(chunks[i].split(/\s+/).length * 1.3);
                 const chunkInsertQuery = `INSERT INTO chunks (org_id, document_id, chunk_index, content, token_count, metadata, embedding_status)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)`
-                const chunkInsertValues = [orgId, documentId, i, chunks[i], tokenCount, metadataJson, 'pending']
+                const chunkInsertValues = [orgId, documentId, i, chunks[i], tokenCount, metadataJson, 'failed']
                 await client.query(chunkInsertQuery, chunkInsertValues)
             }
         }
@@ -92,9 +92,35 @@ export async function storeChunks(doc: RawDocument, chunks: string[], embeddings
 }
 
 export async function deleteChunksDeletedMoreThan7DaysAgo(): Promise<void> {
-    // Delete chunks older than 7 days where deleted_at is not null
-    const deleteChunksQuery = `DELETE FROM chunks WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '7 days'`
-    await query(deleteChunksQuery)
-    // final console log
-    console.log("Chunks deleted more than 7 days ago")
+    let totalDeleted = 0;
+    while (true) {
+        // Delete 1000 chunks at a time using a subquery
+        const deleteChunksQuery = `
+            DELETE FROM chunks 
+            WHERE id IN (
+                SELECT id FROM chunks 
+                WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '7 days' 
+                LIMIT 1000
+            )
+        `
+        const result = await query(deleteChunksQuery)
+        
+        // If rowCount is 0, we've deleted them all! Break the loop.
+        if (result.rowCount === 0) break;
+        
+        totalDeleted += result.rowCount || 0;
+    }
+    console.log(`Successfully deleted ${totalDeleted} chunks that were older than 7 days`);
+}
+
+export async function deleteDocument(externalId: string, integrationId: string, orgId: string): Promise<void> {
+    // Soft delete the document
+    const updateDocumentQuery = `UPDATE documents SET deleted_at = NOW() WHERE external_id = $1 AND integration_id = $2 AND org_id = $3 RETURNING id`
+    const result = await query(updateDocumentQuery, [externalId, integrationId, orgId])
+    
+    // If we found the document, soft delete its chunks too
+    if (result.rows.length > 0) {
+        const documentId = result.rows[0].id
+        await query(`UPDATE chunks SET deleted_at = NOW() WHERE document_id = $1`, [documentId])
+    }
 }
