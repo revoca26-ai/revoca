@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger.js';
 import { Request, Response } from 'express'
 import { Webhook } from 'svix'
 import config from '../../config/config.js'
@@ -28,7 +29,7 @@ export async function handleWebhook(req: Request, res: Response)  {
             'svix-signature': svixSignature
         })
     } catch (error) {
-        console.error('Error verifying svix signature:', error)
+        logger.error({ err: error }, 'Error verifying svix signature:')
         return res.status(400).json({ error: 'Invalid svix signature' })
     }
 
@@ -49,7 +50,7 @@ export async function handleWebhook(req: Request, res: Response)  {
             await handleOrganizationMembershipDeleted(event)
             break
         default:
-            console.log(`Unhandled webhook event: ${eventType}`)
+            logger.info(`Unhandled webhook event: ${eventType}`)
     }
 
     return res.status(200).json({

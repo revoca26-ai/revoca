@@ -26,6 +26,7 @@ const requiredEnvVars: string[] = [
                                                                                            
 // Optional providers that Track A will populate fully later.                              
 // We allow these to be empty strings so Track B developers don't crash on startup.        
+// @ts-ignore
 const optionalEnvVars: string[] = [                                                        
   'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI',                       
   'SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_SIGNING_SECRET', 'SLACK_REDIRECT_URI',  

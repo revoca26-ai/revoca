@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger.js';
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
 import { RefreshTokenSet, TokenSet } from "../../../types/oAuth.js"
@@ -166,7 +167,7 @@ export async function syncGoogleData(integration: Integration): Promise<RawDocum
     
     // NOTE: The Gmail API list endpoint ONLY returns `{ id, threadId }`. 
     // It does not return the actual text of the email!
-    console.log(`Fetched ${messagesList.length} message IDs from Gmail.`);
+    logger.info(`Fetched ${messagesList.length} message IDs from Gmail.`);
 
     const rawDocuments: RawDocument[] = [];
     
@@ -181,7 +182,7 @@ export async function syncGoogleData(integration: Integration): Promise<RawDocum
         });
 
         if (!msgResponse.ok) {
-            console.error(`Failed to fetch message ${msg.id}`);
+            logger.error(`Failed to fetch message ${msg.id}`);
             continue; // Skip this message if it fails
         }
 

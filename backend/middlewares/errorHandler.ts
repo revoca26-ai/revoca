@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 // create a error middleware to handle errors
 import { Request, Response, NextFunction } from 'express'
 import { AppError } from '../types/AppError.js'
@@ -10,7 +11,7 @@ export default function errorMiddleware(err: Error, _req: Request, res: Response
         // extract all the properties from the AppError instance
         const { statusCode, code, message } = err;
         // log the status code
-        console.log(err.statusCode)
+        logger.info(err.statusCode)
         // send the response
         res.status(statusCode).json({ error: { code, message } })
         // stop the function from executing further
@@ -44,7 +45,7 @@ export default function errorMiddleware(err: Error, _req: Request, res: Response
     }
 
     // log the error stack track in the console
-    console.error('CRITICAL ERROR: ', err.stack);
+    logger.error({ err: err.stack }, 'CRITICAL ERROR:');
 
     // send the response
     res.status(statusCode).json({ error: { code, message } })

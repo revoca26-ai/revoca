@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 // backend/scripts/seed-chunks.ts
 import { Client } from 'pg';
 import OpenAI from 'openai';
@@ -40,7 +41,7 @@ const seedData = [
 async function seed() {
   const client = new Client({ connectionString: config.DATABASE_URL });
   await client.connect();
-  console.log('Starting Data Platform seeding matrix...');
+  logger.info('Starting Data Platform seeding matrix...');
 
   try {
     const orgId = '00000000-0000-4000-a000-000000000000';
@@ -110,7 +111,7 @@ async function seed() {
       ]);
 
       if (insertResult.rowCount === 0) {
-        console.log(`Skipping "${item.title}" — already seeded (external_id: ${item.externalId}).`);
+        logger.info(`Skipping "${item.title}" — already seeded (external_id: ${item.externalId}).`);
         continue;
       }
 
@@ -121,12 +122,12 @@ async function seed() {
         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, 'completed');
       `, [orgId, docId, 0, item.text, formattedVector]);
 
-      console.log(`Successfully seeded chunk vector for document: "${item.title}"`);
+      logger.info(`Successfully seeded chunk vector for document: "${item.title}"`);
     }
 
-    console.log('\nDatabase seeding completed successfully.');
+    logger.info('\nDatabase seeding completed successfully.');
   } catch (err) {
-    console.error('Critical seeding error:', err);
+    logger.error({ err: err }, 'Critical seeding error:');
   } finally {
     await client.end();
   }
