@@ -167,7 +167,7 @@ export async function syncGoogleData(integration: Integration): Promise<RawDocum
     
     // NOTE: The Gmail API list endpoint ONLY returns `{ id, threadId }`. 
     // It does not return the actual text of the email!
-    logger.info(`Fetched ${messagesList.length} message IDs from Gmail.`);
+    logger.info({ provider: 'google', integrationId: integration.id, count: messagesList.length }, `Fetched ${messagesList.length} message IDs from Gmail.`)
 
     const rawDocuments: RawDocument[] = [];
     
