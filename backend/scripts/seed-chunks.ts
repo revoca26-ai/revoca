@@ -1,4 +1,3 @@
-import { logger } from '../utils/logger.js';
 // backend/scripts/seed-chunks.ts
 import { Client } from 'pg';
 import OpenAI from 'openai';
@@ -41,14 +40,14 @@ const seedData = [
 async function seed() {
   const client = new Client({ connectionString: config.DATABASE_URL });
   await client.connect();
-  logger.info('Starting Data Platform seeding matrix...');
+  console.log('Starting Data Platform seeding matrix...');
 
   try {
     const orgId = '00000000-0000-4000-a000-000000000000';
     const userId = '11111111-1111-4000-a000-000000000000';
-    const integrationId = '22222222-2222-4000-a000-000000000000'; // Added valid integration UUID
+    const integrationId = '22222222-2222-4000-a000-000000000000'; 
     const mockClerkOrgId = 'org_clerk_test_12345';
-    const mockClerkUserId = 'user_clerk_test_12345';
+    const mockClerkUserId = 'user_3H6ID7t90OaDlO7GsEMFgZbKcsL'; // Real Clerk User ID
 
     // 1. Insert into organizations
     await client.query(`
@@ -62,10 +61,9 @@ async function seed() {
       INSERT INTO users (id, clerk_user_id, org_id, email, role)
       VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (id) DO NOTHING;
-    `, [userId, mockClerkUserId, orgId, 'test-engineer@revoca.dev', 'admin']);
+    `, [userId, mockClerkUserId, orgId, 'revoca26@gmail.com', 'admin']);
 
     // 3. Insert mock integration to satisfy document dependency
-    // Adjusting provider/status names based on common schema layouts
     await client.query(`
       INSERT INTO integrations (id, org_id, provider, status)
       VALUES ($1, $2, 'google_drive', 'active')
@@ -82,13 +80,6 @@ async function seed() {
       });
       const vectorArray = embeddingResponse.data[0].embedding;
 
-      // Provided integration_id AND external_id inside the document mapping vector.
-      // external_id is NOT NULL in the schema — it's meant to track the doc's
-      // ID in its source system (Drive file ID, Gmail message ID, etc). Since
-      // this is synthetic seed data, we use a stable placeholder per item.
-      // There IS a unique constraint on (org_id, integration_id, external_id),
-      // so ON CONFLICT DO NOTHING makes reruns safe. If the doc already
-      // exists, we skip inserting a duplicate chunk for it too (see below).
       const contentHash = crypto.createHash('sha256').update(item.text).digest('hex');
 
       const insertResult = await client.query(`
@@ -111,7 +102,7 @@ async function seed() {
       ]);
 
       if (insertResult.rowCount === 0) {
-        logger.info(`Skipping "${item.title}" — already seeded (external_id: ${item.externalId}).`);
+        console.log(`Skipping "${item.title}" — already seeded (external_id: ${item.externalId}).`);
         continue;
       }
 
@@ -122,12 +113,12 @@ async function seed() {
         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, 'completed');
       `, [orgId, docId, 0, item.text, formattedVector]);
 
-      logger.info(`Successfully seeded chunk vector for document: "${item.title}"`);
+      console.log(`Successfully seeded chunk vector for document: "${item.title}"`);
     }
 
-    logger.info('\nDatabase seeding completed successfully.');
+    console.log('\nDatabase seeding completed successfully.');
   } catch (err) {
-    logger.error({ err: err }, 'Critical seeding error:');
+    console.error('Critical seeding error:', err);
   } finally {
     await client.end();
   }

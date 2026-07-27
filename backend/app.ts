@@ -6,9 +6,10 @@ import authRouter from './modules/auth/authRouter.js'
 import orgRouter from './modules/org/orgRouter.js'
 import integrationsRouter from './modules/integrations/integrationsRouter.js'
 import webhooksRouter from './modules/webhooks/webhooksRouter.js'
+import askRouter from './modules/ask/askRouter.js'
+import requireAuth from './middlewares/auth.js'
 // declare app
 const app: Application = express()
-
 // use middleware
 // auth router must be placed before the clerk middleware since the webhook does not require authentication
 app.use('/api/v1/auth', authRouter)
@@ -23,6 +24,7 @@ app.use(cors())
 app.use('/api/v1/org', orgRouter)
 app.use('/api/v1/integrations', integrationsRouter)
 app.use('/api/v1/webhooks', webhooksRouter)
+app.use('/api/v1/ask', askRouter)
 // main welcome route
 app.get('/', (_req: Request, res: Response): Response => {
     return res.status(200).json({
@@ -30,7 +32,6 @@ app.get('/', (_req: Request, res: Response): Response => {
         message: 'Welcome to the Revoca API'
     })
 })
-
 // health check route -> readiness probe
 app.get('/health', async (_req: Request, res: Response): Promise<void> => {
     try {
@@ -46,13 +47,18 @@ app.get('/health', async (_req: Request, res: Response): Promise<void> => {
         })
     }
 })
-
 // healthz route -> liveness probe
 app.get('/healthz', (_req: Request, res: Response): void => {
     res.status(200).json({
         status: 'ok',
     })
 })
-
+// me route -> confirms the auth middleware chain works end-to-end
+app.get('/api/v1/me', requireAuth, (req: Request, res: Response): Response => {
+    return res.status(200).json({
+        user: req.user,
+        org_id: req.org_id,
+    })
+})
 // export app
 export default app

@@ -17,32 +17,23 @@ const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY });
 
 // Below this rerank relevance score, we don't trust the top result enough
 // to answer confidently — per the doc's Stage 14 spec (0.55 threshold).
-
-
-// KNOWN LIMITATION (as of Stage 14 testing, confirmed against seeded data):
-// Cohere rerank relevance scores are not calibrated to be comparable across
-// different questions — a correct top result can score anywhere from ~0.0001
-// to ~0.99 depending on how lexically/semantically close the question phrasing
-// is to the source text, even when the ranking itself is correct. This means
-// CONFIDENCE_THRESHOLD can produce false "insufficient_evidence" rejections
-// on legitimately answerable questions (confirmed case: "What does the
-// roadmap say about search?" scored 0.0001 despite correctly ranking the
-// right chunk #1).
-//
-// Not fixed yet. Options considered: lower the absolute threshold, switch to
-// a relative gap between rank #1 and #2 scores, or treat this threshold as a
-// secondary check rather than the primary gate. Revisit before relying on
-// insufficient_evidence responses in the real product — for now this is a
-// known gap, not a blocker for Stage 15 development.
-
 const CONFIDENCE_THRESHOLD = 0.55;
 const PIPELINE_TIMEOUT_MS = 25_000;
 
 export type AskEvent =
   | { type: 'status'; status: string }
   | { type: 'token'; text: string }
-  | { type: 'sources'; sources: Array<{ index: number; chunkId: string; documentId: string }> }
-  | { type: 'done' }
+  | {
+      type: 'sources';
+      sources: Array<{
+        index: number;
+        chunkId: string;
+        documentId: string;
+        relevanceScore: number;
+        snippet: string;
+      }>;
+    }
+  | { type: 'done'; confidence: number }
   | { type: 'error'; message: string };
 
 // TODO: swap this for Track A's shared embed() from modules/ingest/embedder.ts
@@ -72,7 +63,7 @@ export async function* runAskPipeline(
 
     if (hybridResults.length === 0) {
       yield { type: 'status', status: 'insufficient_evidence' };
-      yield { type: 'done' };
+      yield { type: 'done', confidence: 0 };
       return;
     }
 
@@ -87,7 +78,7 @@ export async function* runAskPipeline(
     const topScore = reranked[0]?.relevanceScore ?? 0;
     if (topScore < CONFIDENCE_THRESHOLD) {
       yield { type: 'status', status: 'insufficient_evidence' };
-      yield { type: 'done' };
+      yield { type: 'done', confidence: topScore };
       return;
     }
 
@@ -104,6 +95,8 @@ export async function* runAskPipeline(
         index: i + 1,
         chunkId: r.chunk.id,
         documentId: r.chunk.document_id,
+        relevanceScore: r.relevanceScore,
+        snippet: r.chunk.content.slice(0, 300),
       })),
     };
 
@@ -115,7 +108,7 @@ export async function* runAskPipeline(
       yield { type: 'token', text: token };
     }
 
-    yield { type: 'done' };
+    yield { type: 'done', confidence: topScore };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown pipeline error';
     yield { type: 'error', message };
