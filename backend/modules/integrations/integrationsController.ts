@@ -33,8 +33,8 @@ export async function connectIntegration(req: Request, res: Response, next: Next
     try {
         // get the org_id from the request
         const orgId = req.org_id!
-        // get the user_id from the request
-        const userId = req.clerkUserId!
+        // oauth_states.user_id references users.id (UUID), not clerk_user_id
+        const userId = req.user!.id
         // get the provider from the request
         const provider = req.params.provider as string
         // get the redirect path from the request

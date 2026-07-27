@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger.js'
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
 import { TokenSet, RefreshTokenSet } from "../../../types/oAuth.js"
@@ -119,6 +120,7 @@ export async function syncGithubData(integration: Integration): Promise<RawDocum
     }
 
     const issues = Array.isArray(data) ? data : [];
+    logger.info({ provider: 'github', integrationId: integration.id, count: issues.length }, `Fetched ${issues.length} issues from GitHub.`)
     const rawDocuments: RawDocument[] = [];
 
     // Map each GitHub issue/PR into our RawDocument format
