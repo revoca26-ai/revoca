@@ -21,7 +21,8 @@ const requiredEnvVars: string[] = [
   'OPENAI_API_KEY',                                                                        
   'COHERE_API_KEY',                                                                        
   'ROLE',                                                                                  
-  'SLACK_WEBHOOK_SIGNING_SECRET'                                                           
+  'SLACK_WEBHOOK_SIGNING_SECRET',
+  'GEMINI_API_KEY'                                                          
 ];                                                                                         
                                                                                            
 // Optional providers that Track A will populate fully later.                              
@@ -52,7 +53,8 @@ interface Config {
   OPENAI_API_KEY: string;                                                                  
   COHERE_API_KEY: string;                                                                  
   ROLE: string;                                                                            
-  SLACK_WEBHOOK_SIGNING_SECRET: string;                                                    
+  SLACK_WEBHOOK_SIGNING_SECRET: string;  
+  GEMINI_API_KEY: string;                                                  
                                                                                            
   // Optional strings for external OAuth providers                                         
   GOOGLE_CLIENT_ID: string;                                                                
@@ -79,7 +81,8 @@ const config: Config = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY!,                                             
   COHERE_API_KEY: process.env.COHERE_API_KEY!,                                             
   ROLE: process.env.ROLE!,                                                                 
-  SLACK_WEBHOOK_SIGNING_SECRET: process.env.SLACK_WEBHOOK_SIGNING_SECRET!,                 
+  SLACK_WEBHOOK_SIGNING_SECRET: process.env.SLACK_WEBHOOK_SIGNING_SECRET!,    
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY!,             
                                                                                            
   // Fall back to empty strings if not configured yet so the server boots safely           
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',                                    

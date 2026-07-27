@@ -10,7 +10,23 @@ export async function hybridSearch(
   limit: number = 20
 ): Promise<Array<{ chunkId: string; rrfScore: number }>> {
   const vectorLiteral = `[${queryEmbedding.join(',')}]`;
-  const tsQuery = searchTerms.join(' | '); // OR-match on individual terms
+
+  // Build a valid tsquery from possibly multi-word phrases.
+  // Within a phrase, words are ANDed ("deployment schedule" -> "deployment & schedule").
+  // Across phrases, they're ORed ("deployment schedule" | "code freeze").
+  // to_tsquery requires an explicit operator between every lexeme, so a bare
+  // space (which is what searchTerms.join(' | ') used to produce for
+  // multi-word phrases) is invalid syntax.
+  const tsQuery = searchTerms
+    .map((term) =>
+      term
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .join(' & ')
+    )
+    .filter(Boolean)
+    .join(' | ');
 
   // Semantic leg — pgvector cosine distance, ranked ascending (closer = smaller distance)
   const semanticResult = await pool.query(
@@ -25,20 +41,25 @@ export async function hybridSearch(
     [orgId, vectorLiteral, limit]
   );
 
-  // Keyword leg — full-text search against generated tsvector column
-  const keywordResult = await pool.query(
-    `
-    SELECT id AS chunk_id,
-           ROW_NUMBER() OVER (ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC) AS rank
-    FROM chunks
-    WHERE org_id = $1
-      AND deleted_at IS NULL
-      AND search_vector @@ to_tsquery('english', $2)
-    ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC
-    LIMIT $3;
-    `,
-    [orgId, tsQuery, limit]
-  );
+  // Keyword leg — full-text search against generated tsvector column.
+  // Skip entirely if we ended up with an empty tsQuery (e.g. searchTerms was empty),
+  // since to_tsquery('') throws rather than matching nothing.
+  let keywordResult: { rows: any[] } = { rows: [] };
+  if (tsQuery.length > 0) {
+    keywordResult = await pool.query(
+      `
+      SELECT id AS chunk_id,
+             ROW_NUMBER() OVER (ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC) AS rank
+      FROM chunks
+      WHERE org_id = $1
+        AND deleted_at IS NULL
+        AND search_vector @@ to_tsquery('english', $2)
+      ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC
+      LIMIT $3;
+      `,
+      [orgId, tsQuery, limit]
+    );
+  }
 
   // Reciprocal Rank Fusion: score = sum of 1/(k + rank) across both legs
   const scores = new Map<string, number>();
