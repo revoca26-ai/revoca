@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger.js';
 import { RawDocument } from "../../types/integrations.js"
 import { query, pool } from "../../db/pool.js"
 import crypto from 'crypto'
@@ -110,7 +111,7 @@ export async function deleteChunksDeletedMoreThan7DaysAgo(): Promise<void> {
         
         totalDeleted += result.rowCount || 0;
     }
-    console.log(`Successfully deleted ${totalDeleted} chunks that were older than 7 days`);
+    logger.info(`Successfully deleted ${totalDeleted} chunks that were older than 7 days`);
 }
 
 export async function deleteDocument(externalId: string, integrationId: string, orgId: string): Promise<void> {

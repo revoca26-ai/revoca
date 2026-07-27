@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 // backend/scripts/test-hybrid-search.ts
 //
 // Quick manual test for hybridSearch() + rerank() against your seeded chunks.
@@ -82,33 +83,33 @@ async function main() {
 
   try {
     for (const question of questions) {
-      console.log(`\n=== "${question}" ===`);
+      logger.info(`\n=== "${question}" ===`);
 
       const searchTerms = extractSearchTerms(question);
-      console.log(`  search terms: [${searchTerms.join(', ')}]`);
+      logger.info(`  search terms: [${searchTerms.join(', ')}]`);
 
       const queryEmbedding = await embedQuery(question);
       const hybridResults = await hybridSearch(ORG_ID, queryEmbedding, searchTerms, 10);
 
       if (hybridResults.length === 0) {
-        console.log('  (no hybrid results)');
+        logger.info('  (no hybrid results)');
         continue;
       }
 
-      console.log('  -- hybrid (pre-rerank) --');
+      logger.info('  -- hybrid (pre-rerank) --');
       for (const [i, result] of hybridResults.entries()) {
         const { rows } = await client.query(`SELECT content FROM chunks WHERE id = $1;`, [result.chunkId]);
         const preview = rows[0]?.content?.slice(0, 60) ?? '(not found)';
-        console.log(`  ${i + 1}. rrf=${result.rrfScore.toFixed(4)}  "${preview}..."`);
+        logger.info(`  ${i + 1}. rrf=${result.rrfScore.toFixed(4)}  "${preview}..."`);
       }
 
       const candidates = await fetchChunkRows(client, hybridResults.map((r) => r.chunkId));
       const reranked = await rerank(question, candidates as any, 6);
 
-      console.log('  -- after rerank --');
+      logger.info('  -- after rerank --');
       for (const [i, result] of reranked.entries()) {
         const preview = result.chunk.content.slice(0, 60);
-        console.log(`  ${i + 1}. relevance=${result.relevanceScore.toFixed(4)}  "${preview}..."`);
+        logger.info(`  ${i + 1}. relevance=${result.relevanceScore.toFixed(4)}  "${preview}..."`);
       }
     }
   } finally {
@@ -117,6 +118,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Test script error:', err);
+  logger.error('Test script error:', err);
   process.exit(1);
 });

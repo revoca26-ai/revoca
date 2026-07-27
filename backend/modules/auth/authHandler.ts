@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger.js';
 // this file will handle the webhook events
 import orgRepository from '../org/orgRepository.js'
 import userRepository from '../user/userRepository.js'
@@ -10,7 +11,7 @@ export async function handleOrganizationCreated(event: any) {
         name: event.data.name,
         org_type: orgType
     })
-    console.log(`Organization created: ${org.id}`)
+    logger.info(`Organization created: ${org.id}`)
 }
 
 export async function handleOrganizationMembershipCreated(event: any) {
@@ -21,13 +22,13 @@ export async function handleOrganizationMembershipCreated(event: any) {
 
     // just in case the email is not found safegaurd for our database
     if (!email) {
-        console.log(`User email not found: ${clerkUserId}`)
+        logger.info(`User email not found: ${clerkUserId}`)
         return
     }
 
     const org = await orgRepository.findByClerkOrgId(clerkOrgId)
     if (!org) {
-        console.log(`Organization not found: ${clerkOrgId}`)
+        logger.info(`Organization not found: ${clerkOrgId}`)
         return
     }
 
@@ -36,7 +37,7 @@ export async function handleOrganizationMembershipCreated(event: any) {
         email: email,
         role: role,
     })
-    console.log(`User created: ${user.id} for organization: ${org.id}`)
+    logger.info(`User created: ${user.id} for organization: ${org.id}`)
 }
 
 export async function handleOrganizationMembershipUpdated(event: any) {
@@ -46,18 +47,18 @@ export async function handleOrganizationMembershipUpdated(event: any) {
 
     const org = await orgRepository.findByClerkOrgId(clerkOrgId)
     if (!org) {
-        console.log(`Organization not found: ${clerkOrgId}`)
+        logger.info(`Organization not found: ${clerkOrgId}`)
         return
     }
 
     const user = await userRepository.findByClerkUserId(clerkUserId)
     if (!user) {
-        console.log(`User not found: ${clerkUserId}`)
+        logger.info(`User not found: ${clerkUserId}`)
         return
     }
 
     const updated = await userRepository.updateById(user.id, org.id, { role })
-    console.log(`User role updated: ${updated?.id} → ${role}`)
+    logger.info(`User role updated: ${updated?.id} → ${role}`)
 }
 
 export async function handleOrganizationMembershipDeleted(event: any) {
@@ -66,16 +67,16 @@ export async function handleOrganizationMembershipDeleted(event: any) {
 
     const org = await orgRepository.findByClerkOrgId(clerkOrgId)
     if (!org) {
-        console.log(`Organization not found: ${clerkOrgId}`)
+        logger.info(`Organization not found: ${clerkOrgId}`)
         return
     }
 
     const user = await userRepository.findByClerkUserId(clerkUserId)
     if (!user) {
-        console.log(`User not found: ${clerkUserId}`)
+        logger.info(`User not found: ${clerkUserId}`)
         return
     }
 
     const deleted = await userRepository.deleteById(user.id, org.id)
-    console.log(`User removed from organization: ${user.id}, success: ${deleted}`)
+    logger.info(`User removed from organization: ${user.id}, success: ${deleted}`)
 }

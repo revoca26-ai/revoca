@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 import dotenv from 'dotenv'
 import { Client } from 'pg'
 import fs from 'fs'
@@ -50,7 +51,7 @@ try {
     // read the content of each sql file and run the query if not already applied
     for (const file of sqlFiles) {
         if (applied.has(file)) {
-            console.log(`Skipping: ${file} (already applied)`)
+            logger.info(`Skipping: ${file} (already applied)`)
             continue
         }
 
@@ -59,7 +60,7 @@ try {
         // extracting the content as a text string (utf8)
         const fileContent = fs.readFileSync(filePath, 'utf8')
         
-        console.log(`Migrating: ${file}`)
+        logger.info(`Migrating: ${file}`)
         
         // Run migration and record its execution in a transaction
         await client.query('BEGIN')
@@ -73,9 +74,9 @@ try {
         }
     }
 
-    console.log('Migrations finished successfully!')
+    logger.info('Migrations finished successfully!')
 } catch (error) {
-    console.error('Migration runner failed:', error)
+    logger.error({ err: error }, 'Migration runner failed:')
     process.exit(1)
 } finally {
     await client.end()

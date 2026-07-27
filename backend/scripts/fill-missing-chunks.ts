@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 // backend/scripts/backfill-missing-chunk.ts
 //
 // One-off fix: "Engineering Onboarding & Architecture" got its documents row
@@ -28,7 +29,7 @@ async function main() {
     );
 
     if (rows.length === 0) {
-      console.error('No document found with that external_id — nothing to backfill.');
+      logger.error('No document found with that external_id — nothing to backfill.');
       return;
     }
 
@@ -40,7 +41,7 @@ async function main() {
     );
 
     if (existingChunks.length > 0) {
-      console.log('This document already has chunks — nothing to do.');
+      logger.info('This document already has chunks — nothing to do.');
       return;
     }
 
@@ -59,13 +60,13 @@ async function main() {
       [ORG_ID, documentId, TEXT, formattedVector]
     );
 
-    console.log('Backfilled missing chunk for "Engineering Onboarding & Architecture".');
+    logger.info('Backfilled missing chunk for "Engineering Onboarding & Architecture".');
   } finally {
     await client.end();
   }
 }
 
 main().catch((err) => {
-  console.error('Backfill error:', err);
+  logger.error('Backfill error:', err);
   process.exit(1);
 });

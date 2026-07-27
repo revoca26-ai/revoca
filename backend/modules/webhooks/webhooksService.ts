@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger.js';
 import { getIntegrationIdAndOrgIdByExternalAccountIdForSlack } from "./webhooksRepository.js";
 import { RawDocument } from "../../types/integrations.js";
 import { ingestDocument } from "../ingest/pipeline.js";
@@ -21,11 +22,11 @@ export async function handleSlackMessageEvent(event: any, externalAccountId: str
                 // The message was deleted in Slack, delete it in our DB
                 const { integrationId, orgId } = await getIntegrationIdAndOrgIdByExternalAccountIdForSlack(externalAccountId)
                 await deleteDocument(event.deleted_ts, integrationId, orgId);
-                console.log(`Deleted message ${event.deleted_ts} from Slack`);
+                logger.info(`Deleted message ${event.deleted_ts} from Slack`);
                 return;
             } else {
                 // Ignore bot messages, channel joins, etc.
-                console.log(`Skipping Slack message with subtype: ${event.subtype}`);
+                logger.info(`Skipping Slack message with subtype: ${event.subtype}`);
                 return;
             }
         }
@@ -49,10 +50,10 @@ export async function handleSlackMessageEvent(event: any, externalAccountId: str
         // pass the raw document to the ingestion service to be ingested
         await ingestDocument(document)
         // log the event data
-        console.log(`Received message event from user ${user} in channel ${channel} at timestamp ${ts} with text: ${text}`)
+        logger.info(`Received message event from user ${user} in channel ${channel} at timestamp ${ts} with text: ${text}`)
 
     } catch (error) {
-        console.error(`Error handling slack message event: ${error}`)
+        logger.error(`Error handling slack message event: ${error}`)
         throw error
     }
 }
