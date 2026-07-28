@@ -125,16 +125,27 @@ export async function syncGithubData(integration: Integration): Promise<RawDocum
 
     // Map each GitHub issue/PR into our RawDocument format
     for (const issue of issues) {
+        // get the type of the issue
+        const kind = issue.pull_request ? 'pull_request' : 'issue'
+        const label = issue.pull_request ? 'Github Pull Request' : 'Github Issue'
+        const customMetadata = {
+            kind,
+            repo: issue.repository?.full_name ?? 'Unknown',
+            number: issue.number,
+            state: issue.state,
+            labels: issue.labels?.map((l: any) => l.name) ?? [],
+        }
         rawDocuments.push({
             id: issue.id.toString(),
             integrationId: integration.id,
             orgId: integration.org_id,
-            text: `${issue.title}\n\n${issue.body || ''}`,
+            text: `${label}:\n\n${issue.title}\n\n${issue.body || ''}`,
             author: issue.user?.login || 'Unknown',
             timestamp: new Date(issue.created_at),
             permalink: issue.html_url,
-            sourceType: 'github_issue',
-            title: issue.title
+            sourceType: kind,
+            title: issue.title,
+            customMetadata,
         });
     }
 
