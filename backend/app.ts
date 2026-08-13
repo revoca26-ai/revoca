@@ -6,6 +6,8 @@ import authRouter from './modules/auth/authRouter.js'
 import orgRouter from './modules/org/orgRouter.js'
 import integrationsRouter from './modules/integrations/integrationsRouter.js'
 import webhooksRouter from './modules/webhooks/webhooksRouter.js'
+import askRouter from './modules/ask/askRouter.js'
+import errorMiddleware from './middlewares/errorHandler.js'
 // declare app
 const app: Application = express()
 
@@ -22,6 +24,7 @@ app.use(express.json({
 app.use(cors())
 app.use('/api/v1/org', orgRouter)
 app.use('/api/v1/integrations', integrationsRouter)
+app.use('/api/v1/ask', askRouter)
 app.use('/api/v1/webhooks', webhooksRouter)
 // main welcome route
 app.get('/', (_req: Request, res: Response): Response => {
@@ -53,6 +56,9 @@ app.get('/healthz', (_req: Request, res: Response): void => {
         status: 'ok',
     })
 })
+
+// must be last so next(err) from routers (including Zod) returns JSON
+app.use(errorMiddleware)
 
 // export app
 export default app
