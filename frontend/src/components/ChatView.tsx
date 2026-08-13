@@ -87,6 +87,12 @@ export default function ChatView({ askState, onAsk }: Props) {
                 </div>
               )}
 
+              {askState.status === 'done' && !askState.answer && !askState.error && (
+                <div className="rounded-2xl rounded-bl-sm bg-cream-light px-4 py-3 text-ink-muted">
+                  I couldn't find enough information in your connected tools to answer that confidently.
+                </div>
+              )}
+
               {askState.error && (
                 <div className="rounded-2xl bg-red-50 px-4 py-3 text-red-800">
                   {askState.error === 'Not signed in'

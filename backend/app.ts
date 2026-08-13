@@ -18,6 +18,12 @@ app.use('/api/v1/auth', authRouter)
 app.use(cors({
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'ngrok-skip-browser-warning',
+        'Ngrok-Skip-Browser-Warning',
+    ],
 }))
 app.use(clerkMiddleware())
 app.use(express.json({

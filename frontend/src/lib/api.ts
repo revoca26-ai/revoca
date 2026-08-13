@@ -7,7 +7,18 @@
 // request (see middlewares/auth.ts on the backend).
 
 // Empty in local dev so Vite can proxy /api → backend and skip CORS.
+// If the API is reached via ngrok, set VITE_API_URL to that https URL.
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? ''
+
+function apiHeaders(token: string, extra: Record<string, string> = {}): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    // Free ngrok serves an interstitial HTML page unless this header is present.
+    // That page has no CORS headers, so the browser reports "localhost not allowed".
+    'ngrok-skip-browser-warning': 'true',
+    ...extra,
+  }
+}
 
 export type AskEvent =
   | { type: 'status'; status: string }
@@ -36,10 +47,7 @@ export type QueryHistoryItem = {
 export async function createQuery(token: string, question: string): Promise<{ id: string }> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ask`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: apiHeaders(token, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ question }),
   })
 
@@ -53,7 +61,7 @@ export async function createQuery(token: string, question: string): Promise<{ id
 
 export async function fetchQueryDetail(token: string, queryId: string) {
   const res = await fetch(`${API_BASE_URL}/api/v1/ask/${queryId}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: apiHeaders(token),
   })
   if (!res.ok) throw new Error(`Failed to load query (${res.status})`)
   return res.json()
@@ -61,7 +69,7 @@ export async function fetchQueryDetail(token: string, queryId: string) {
 
 export async function fetchHistory(token: string): Promise<QueryHistoryItem[]> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ask/history`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: apiHeaders(token),
   })
   if (!res.ok) return []
   const data = await res.json()
@@ -77,7 +85,7 @@ export async function* streamQuery(
   signal?: AbortSignal
 ): AsyncGenerator<AskEvent, void, unknown> {
   const res = await fetch(`${API_BASE_URL}/api/v1/ask/${queryId}/stream`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: apiHeaders(token),
     signal,
   })
 
