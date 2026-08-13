@@ -34,6 +34,7 @@ type RawDocument = {
     permalink: string | null,
     sourceType: string,
     title: string | null,
+    customMetadata?: Record<string, unknown>,
 }
 
 export { Integration, IntegrationList, RawDocument }

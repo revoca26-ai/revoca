@@ -10,7 +10,7 @@ export async function storeChunks(doc: RawDocument, chunks: string[], embeddings
         // start a transaction
         await client.query('BEGIN')
         // extract the document properties
-        const { id, integrationId, orgId, text, author, timestamp, permalink, sourceType, title } = doc
+        const { id, integrationId, orgId, text, author, timestamp, permalink, sourceType, title, customMetadata } = doc
         // generate a content hash
         const contentHash = crypto.createHash('sha256').update(text).digest('hex')
         // check if the document already exists in the database
@@ -38,6 +38,7 @@ export async function storeChunks(doc: RawDocument, chunks: string[], embeddings
         const metadata = {
             author: author || null,
             timestamp: timestamp.toISOString(),
+            ...customMetadata,
         }
         const metadataJson = JSON.stringify(metadata)
         

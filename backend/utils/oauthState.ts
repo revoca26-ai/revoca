@@ -23,7 +23,8 @@ export async function createOauthState(newOauthState: NewOauthState): Promise<st
             return state;
         } catch (err) {
             if (err instanceof Error && 'code' in err && err.code === '23505') continue;
-            throw new AppError(500, 'INTERNAL_ERROR', 'Failed to create OAuth state');
+            const message = err instanceof Error ? err.message : 'Failed to create OAuth state';
+            throw new AppError(500, 'INTERNAL_ERROR', `Failed to create OAuth state: ${message}`);
         }
     }
 }

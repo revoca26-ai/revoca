@@ -32,8 +32,10 @@ cron.schedule('*/15 * * * *', async () => {
                 }
                 // get the connector for the integration
                 const connector = getConnector(integration.provider)
+                logger.info({ provider: integration.provider, integrationId: integration.id }, "Starting provider sync")
                 // sync the data
                 const rawDocuments = await connector.syncData(integration)
+                logger.info({ provider: integration.provider, integrationId: integration.id, fetched: rawDocuments.length }, "Provider sync fetch complete")
                 // loop through the raw documents and ingest the data
                 let ingestedDocuments = 0;
                 for (const rawDocument of rawDocuments) {
@@ -42,7 +44,7 @@ cron.schedule('*/15 * * * *', async () => {
                     ingestedDocuments++;
                 }
                 // final console log
-                logger.info({ integrationId: integration.id, documents: ingestedDocuments }, "Successfully ingested documents")
+                logger.info({ provider: integration.provider, integrationId: integration.id, documents: ingestedDocuments }, "Successfully ingested documents")
                 // update the sync_job table entry
                 await completeSyncJob(syncJobId, rawDocuments.length, ingestedDocuments)
                 // update the integration to say we finished syncing

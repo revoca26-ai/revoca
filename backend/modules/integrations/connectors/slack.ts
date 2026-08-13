@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger.js'
 import { AppError } from "../../../types/AppError.js"
 import config from "../../../config/config.js"
 import { TokenSet, RefreshTokenSet } from "../../../types/oAuth.js"
@@ -114,6 +115,7 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
     }
     // get the channels from the data
     const channels = channelsData.channels || []
+    logger.info({ provider: 'slack', integrationId: integration.id, channels: channels.length }, `Fetched ${channels.length} Slack channels.`)
     const rawDocuments: RawDocument[] = []
     // loop through the channels and get the data for each channel
     for (const channel of channels) {
@@ -152,6 +154,7 @@ export async function syncSlackData(integration: Integration): Promise<RawDocume
             title: `#${channel.name}`, // channel name is used as the title
         })))
     }
+    logger.info({ provider: 'slack', integrationId: integration.id, count: rawDocuments.length }, `Fetched ${rawDocuments.length} messages from Slack.`)
     // return the raw documents
     return rawDocuments
 }
