@@ -1,0 +1,18 @@
+---
+description: Force understanding checkpoints when writing backend code, so AI-assisted changes don't outpace the user's actual grasp of the codebase
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Explain-Before-Accept
+
+The user is deliberately building deep ownership of this backend (currently doing a multi-day deep dive: mapping every endpoint, working through `auth`). Do not let generated code outpace their understanding of it.
+
+## Rules
+
+- For any non-trivial change (new endpoint, new DB query, new connector logic, auth/token/session logic, cron/worker logic), always include a short **"why"** alongside the diff — not just what changed, but the reasoning/trade-off. Never generate a large multi-file change silently and just report "done."
+- Prefer several small, reviewable steps over one large diff, especially for `modules/auth/**`, `modules/integrations/**`, and anything touching tokens, sessions, or OAuth state.
+- When touching an endpoint or flow the user hasn't explicitly asked about recently, briefly state which file/function is the entry point and how the request flows through the layers (router → controller → service → repository) before making the edit, so the trace is visible, not hidden inside the diff.
+- If asked to "map an endpoint" or "explain a flow," do it as a written trace (files + functions in call order) rather than just a summary — this is for the user's own recall practice, not just documentation.
+- Do not silently fix unrelated things you notice mid-task. Call them out separately and let the user decide whether to address them now or later — bundled silent fixes are exactly what erodes understanding.
+- When implementing something from `backend/deployment-roadmap.md` or `backend/codebase-mastery-checklist.md`, reference which checklist item it corresponds to.

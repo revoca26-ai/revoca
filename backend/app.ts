@@ -13,6 +13,13 @@ const app: Application = express()
 // use middleware
 // auth router must be placed before the clerk middleware since the webhook does not require authentication
 app.use('/api/v1/auth', authRouter)
+// CORS must run before Clerk. Browsers send OPTIONS first; if Clerk handles
+// that handshake it returns 204 with no CORS headers and the real POST never runs.
+app.use(cors({
+    origin: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}))
 app.use(clerkMiddleware())
 app.use(express.json({
     verify: (req: Request, _res: Response, buf: Buffer) => {
@@ -20,7 +27,6 @@ app.use(express.json({
         req.rawBody = buf
     }
 }))
-app.use(cors())
 app.use('/api/v1/org', orgRouter)
 app.use('/api/v1/integrations', integrationsRouter)
 app.use('/api/v1/webhooks', webhooksRouter)
