@@ -1,122 +1,94 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+// frontend/src/App.tsx
+import { useCallback, useEffect, useState } from 'react'
+import { SignedIn, SignedOut, SignIn, useAuth } from '@clerk/clerk-react'
+import Sidebar from './components/Sidebar'
+import ChatView from './components/ChatView'
+import { useAsk } from './hooks/useAsk'
+import { fetchHistory, fetchQueryDetail, type QueryHistoryItem } from './lib/api'
 
-function App() {
-  const [count, setCount] = useState(0)
+function AskApp() {
+  const { getToken } = useAuth()
+  const [history, setHistory] = useState<QueryHistoryItem[]>([])
+  const [activeQueryId, setActiveQueryId] = useState<string | null>(null)
+
+  const tokenGetter = useCallback(() => getToken(), [getToken])
+  const { state, ask, reset, viewStatic } = useAsk(tokenGetter)
+
+  const loadHistory = useCallback(async () => {
+    const token = await getToken()
+    if (!token) return
+    const items = await fetchHistory(token)
+    setHistory(items)
+  }, [getToken])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
+
+  // Refresh history once a question finishes, so it shows up in "Recent"
+  useEffect(() => {
+    if (state.status === 'done') {
+      loadHistory()
+    }
+  }, [state.status, loadHistory])
+
+  async function handleAsk(question: string) {
+    setActiveQueryId(null)
+    await ask(question)
+  }
+
+  function handleNewSearch() {
+    setActiveQueryId(null)
+    reset()
+  }
+
+  async function handleSelectHistory(item: QueryHistoryItem) {
+    setActiveQueryId(item.id)
+    const token = await getToken()
+    if (!token) return
+    try {
+      const detail = await fetchQueryDetail(token, item.id)
+      viewStatic({
+        question: detail.question,
+        answer: detail.answer ?? '',
+        sources: (detail.sources ?? []).map((s: any) => ({
+          index: s.citation_index,
+          chunkId: s.chunk_id,
+          documentId: '',
+          relevanceScore: s.relevance_score,
+          snippet: s.snippet,
+        })),
+      })
+    } catch {
+      // If the fetch fails, just leave the previous view in place rather
+      // than crashing the UI.
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="flex h-screen w-screen overflow-hidden">
+      <Sidebar
+        history={history}
+        onNewSearch={handleNewSearch}
+        onSelectHistory={handleSelectHistory}
+        activeQueryId={activeQueryId}
+      />
+      <ChatView askState={state} onAsk={handleAsk} />
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <>
+      <SignedIn>
+        <AskApp />
+      </SignedIn>
+      <SignedOut>
+        <div className="flex h-screen w-screen items-center justify-center bg-cream">
+          <SignIn />
+        </div>
+      </SignedOut>
+    </>
+  )
+}
