@@ -129,6 +129,11 @@ askRouter.get('/:id/stream', requireAuth, async (req: Request, res: Response) =>
     return res.status(409).json({ error: 'query already processed', status: query.status });
   }
 
+  const origin = req.headers.origin
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+  }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');

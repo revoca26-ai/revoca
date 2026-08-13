@@ -6,7 +6,8 @@
 // backend requires a real Authorization: Bearer <token> header on every
 // request (see middlewares/auth.ts on the backend).
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+// Empty in local dev so Vite can proxy /api → backend and skip CORS.
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 export type AskEvent =
   | { type: 'status'; status: string }

@@ -17,7 +17,6 @@ app.use('/api/v1/auth', authRouter)
 // that handshake it returns 204 with no CORS headers and the real POST never runs.
 app.use(cors({
     origin: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }))
 app.use(clerkMiddleware())
